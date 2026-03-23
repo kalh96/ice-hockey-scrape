@@ -56,6 +56,7 @@ def run_fixtures_pass(conn, fixtures_only: bool = False) -> None:
             home_score=f["home_score"],
             away_score=f["away_score"],
             status=f["status"],
+            event_url=f.get("event_url"),
         )
     conn.commit()
 
@@ -67,16 +68,17 @@ def run_fixtures_pass(conn, fixtures_only: bool = False) -> None:
 def run_event_detail_pass(conn, force_event_id: int | None = None) -> None:
     logger.info("=== EVENT DETAIL PASS ===")
 
+    from config import BASE_URL
     if force_event_id is not None:
-        todo = [force_event_id]
+        todo = [(force_event_id, f"/event/{force_event_id}/")]
         logger.info("Force-fetching event %d", force_event_id)
     else:
-        todo = db.get_unscraped_event_ids(conn)
+        todo = db.get_unscraped_events(conn)
         logger.info("%d new completed event(s) to scrape", len(todo))
 
     scraped = skipped = 0
-    for event_id in todo:
-        url = EVENT_URL.format(event_id)
+    for event_id, event_path in todo:
+        url = BASE_URL + event_path
         soup = scraper_mod.get_soup(url)
         if soup is None:
             logger.warning("Skipping event %d (no response)", event_id)
@@ -127,13 +129,14 @@ def run_event_detail_pass(conn, force_event_id: int | None = None) -> None:
 
 def run_date_backfill_pass(conn) -> None:
     """Fetch event pages for completed fixtures that have no date recorded."""
-    todo = db.get_undated_event_ids(conn)
+    from config import BASE_URL
+    todo = db.get_undated_events(conn)
     if not todo:
         return
     logger.info("=== DATE BACKFILL PASS (%d events) ===", len(todo))
     updated = 0
-    for event_id in todo:
-        url = EVENT_URL.format(event_id)
+    for event_id, event_path in todo:
+        url = BASE_URL + event_path
         soup = scraper_mod.get_soup(url)
         if soup is None:
             continue
@@ -185,7 +188,7 @@ def run_season_stats_pass(conn) -> None:
         else:
             logger.warning("[%s] Failed to fetch netminder stats page", comp_name)
 
-        # Team stats (SNL only for now)
+        # Team special-teams stats (SNL only for now)
         if "teams" in urls:
             soup = scraper_mod.get_soup(urls["teams"])
             if soup:
@@ -200,6 +203,98 @@ def run_season_stats_pass(conn) -> None:
                 logger.info("[%s] Upserted %d team stats rows", comp_name, len(rows))
             else:
                 logger.warning("[%s] Failed to fetch team stats page", comp_name)
+
+        # Standings (GP, W, L, OTL, GF, GA, PTS) — run last so it overwrites any NULLs
+        if "standings" in urls:
+            soup = scraper_mod.get_soup(urls["standings"])
+            if soup:
+                rows = team_stats_mod.parse_team_stats(soup)
+                for r in rows:
+                    team_id = db.upsert_team(conn, r["team_slug"], r["team_name"])
+                    db.upsert_standings(
+                        conn, comp_id, team_id,
+                        r.get("pos"), r.get("gp"), r.get("wins"), r.get("losses"),
+                        r.get("otl"), r.get("gf"), r.get("ga"), r.get("goal_diff"), r.get("pts"),
+                    )
+                conn.commit()
+                logger.info("[%s] Upserted %d standings rows", comp_name, len(rows))
+            else:
+                logger.warning("[%s] Failed to fetch standings page", comp_name)
+
+
+def run_validation_pass(conn) -> None:
+    """Compare computed standings from fixtures against the scraped league table."""
+    logger.info("=== VALIDATION PASS ===")
+
+    # Compute standings from fixture results (only teams appearing in scraped standings)
+    rows = conn.execute("""
+        SELECT
+            t.slug,
+            t.name,
+            COUNT(*) AS gp,
+            SUM(CASE WHEN (f.home_team_id = t.id AND f.home_score > f.away_score)
+                       OR (f.away_team_id = t.id AND f.away_score > f.home_score) THEN 1 ELSE 0 END) AS w,
+            SUM(CASE WHEN (f.home_team_id = t.id AND f.home_score < f.away_score)
+                       OR (f.away_team_id = t.id AND f.away_score < f.home_score) THEN 1 ELSE 0 END) AS l,
+            SUM(CASE WHEN f.home_team_id = t.id THEN f.home_score ELSE f.away_score END) AS gf,
+            SUM(CASE WHEN f.home_team_id = t.id THEN f.away_score ELSE f.home_score END) AS ga
+        FROM fixtures f
+        JOIN teams t ON t.id IN (f.home_team_id, f.away_team_id)
+        JOIN competitions c ON c.id = f.competition_id
+        WHERE f.status = 'final' AND c.name = 'SNL'
+          AND t.id IN (
+              SELECT team_id FROM team_season_stats s2
+              JOIN competitions c2 ON c2.id = s2.competition_id AND c2.name = 'SNL'
+          )
+        GROUP BY t.id
+        ORDER BY w DESC, gf - ga DESC
+    """).fetchall()
+    computed = {r["slug"]: dict(r) for r in rows}
+
+    # Get scraped standings from team_season_stats
+    scraped_rows = conn.execute("""
+        SELECT t.slug, t.name, s.gp, s.wins, s.losses, s.otl, s.gf, s.ga, s.pts
+        FROM team_season_stats s
+        JOIN teams t ON t.id = s.team_id
+        JOIN competitions c ON c.id = s.competition_id
+        WHERE c.name = 'SNL'
+    """).fetchall()
+    scraped = {r["slug"]: dict(r) for r in scraped_rows}
+
+    if not scraped:
+        logger.warning("No scraped standings found — run season stats pass first")
+        return
+
+    discrepancies = []
+    for slug, comp in computed.items():
+        if slug not in scraped:
+            discrepancies.append(f"  {comp['name']} ({slug}): not found in scraped standings")
+            continue
+        scr = scraped[slug]
+        diffs = []
+        if comp["gp"] != scr["gp"] and scr["gp"] is not None:
+            diffs.append(f"GP computed={comp['gp']} scraped={scr['gp']}")
+        if scr["wins"] is not None and comp["w"] != scr["wins"]:
+            diffs.append(f"W computed={comp['w']} scraped={scr['wins']}")
+        # L discrepancy may be explained by OTL (overtime losses count as L in our computation)
+        if scr["losses"] is not None and comp["l"] != scr["losses"]:
+            otl = scr["otl"] or 0
+            expected_l = scr["losses"] + otl
+            if comp["l"] != expected_l:
+                diffs.append(f"L computed={comp['l']} scraped={scr['losses']} OTL={otl} (expected {expected_l})")
+        if scr["gf"] is not None and comp["gf"] != scr["gf"]:
+            diffs.append(f"GF computed={comp['gf']} scraped={scr['gf']}")
+        if scr["ga"] is not None and comp["ga"] != scr["ga"]:
+            diffs.append(f"GA computed={comp['ga']} scraped={scr['ga']}")
+        if diffs:
+            discrepancies.append(f"  {comp['name']}: {', '.join(diffs)}")
+
+    if discrepancies:
+        logger.warning("Standings discrepancies found:")
+        for d in discrepancies:
+            logger.warning(d)
+    else:
+        logger.info("Validation OK — computed standings match scraped league table")
 
 
 def main() -> None:
@@ -239,6 +334,7 @@ def main() -> None:
                 run_event_detail_pass(conn, force_event_id=args.event)
             run_date_backfill_pass(conn)
             run_season_stats_pass(conn)
+            run_validation_pass(conn)
 
     finally:
         conn.close()

@@ -40,8 +40,12 @@ def init_schema(conn: sqlite3.Connection) -> None:
             home_score     INTEGER,
             away_score     INTEGER,
             status         TEXT    NOT NULL DEFAULT 'scheduled',
-            scraped_at     TEXT    NOT NULL
+            scraped_at     TEXT    NOT NULL,
+            event_url      TEXT
         );
+        -- Add event_url column if upgrading an existing database
+        CREATE TABLE IF NOT EXISTS _migrations (id INTEGER PRIMARY KEY);
+        INSERT OR IGNORE INTO _migrations VALUES (1);
 
         CREATE TABLE IF NOT EXISTS event_period_scores (
             id         INTEGER PRIMARY KEY,
@@ -183,26 +187,28 @@ def upsert_fixture(
     home_score: int | None,
     away_score: int | None,
     status: str,
+    event_url: str | None = None,
 ) -> None:
     conn.execute(
         """
         INSERT INTO fixtures
             (event_id, competition_id, date, home_team_id, away_team_id,
-             home_score, away_score, status, scraped_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+             home_score, away_score, status, scraped_at, event_url)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(event_id) DO UPDATE SET
             competition_id = excluded.competition_id,
-            date           = excluded.date,
+            date           = COALESCE(excluded.date, fixtures.date),
             home_team_id   = excluded.home_team_id,
             away_team_id   = excluded.away_team_id,
             home_score     = excluded.home_score,
             away_score     = excluded.away_score,
             status         = excluded.status,
-            scraped_at     = excluded.scraped_at
+            scraped_at     = excluded.scraped_at,
+            event_url      = COALESCE(excluded.event_url, fixtures.event_url)
         """,
         (
             event_id, competition_id, date, home_team_id, away_team_id,
-            home_score, away_score, status, now_iso(),
+            home_score, away_score, status, now_iso(), event_url,
         ),
     )
 
@@ -376,6 +382,42 @@ def upsert_team_season_stat(
     )
 
 
+def upsert_standings(
+    conn: sqlite3.Connection,
+    competition_id: int,
+    team_id: int,
+    pos: int | None,
+    gp: int | None,
+    wins: int | None,
+    losses: int | None,
+    otl: int | None,
+    gf: int | None,
+    ga: int | None,
+    goal_diff: int | None,
+    pts: int | None,
+) -> None:
+    """Update only the standings columns; leave special-teams stats untouched."""
+    conn.execute(
+        """
+        INSERT INTO team_season_stats
+            (competition_id, team_id, pos, gp, wins, losses, otl, gf, ga, goal_diff, pts, scraped_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(competition_id, team_id) DO UPDATE SET
+            pos       = excluded.pos,
+            gp        = excluded.gp,
+            wins      = excluded.wins,
+            losses    = excluded.losses,
+            otl       = excluded.otl,
+            gf        = excluded.gf,
+            ga        = excluded.ga,
+            goal_diff = excluded.goal_diff,
+            pts       = excluded.pts,
+            scraped_at = excluded.scraped_at
+        """,
+        (competition_id, team_id, pos, gp, wins, losses, otl, gf, ga, goal_diff, pts, now_iso()),
+    )
+
+
 def update_fixture_date(conn: sqlite3.Connection, event_id: int, date: str) -> None:
     conn.execute(
         "UPDATE fixtures SET date = ? WHERE event_id = ?", (date, event_id)
@@ -390,17 +432,39 @@ def get_undated_event_ids(conn: sqlite3.Connection) -> list[int]:
     return [r["event_id"] for r in rows]
 
 
-def get_unscraped_event_ids(conn: sqlite3.Connection) -> list[int]:
-    """Return event_ids that are final but have no player stats yet."""
+def get_unscraped_events(conn: sqlite3.Connection) -> list[tuple[int, str]]:
+    """Return (event_id, url) for final fixtures with no player stats and no period scores yet.
+
+    Events that have period scores but no player stats have already been fetched
+    (the match report exists but the player table was not published); skip them.
+    """
     rows = conn.execute(
         """
-        SELECT f.event_id
+        SELECT f.event_id,
+               COALESCE(f.event_url, '/event/' || f.event_id || '/') AS url
         FROM fixtures f
         WHERE f.status = 'final'
           AND f.event_id NOT IN (
               SELECT DISTINCT event_id FROM event_player_stats
           )
+          AND f.event_id NOT IN (
+              SELECT DISTINCT event_id FROM event_period_scores
+          )
         ORDER BY f.event_id
         """
     ).fetchall()
-    return [r["event_id"] for r in rows]
+    return [(r["event_id"], r["url"]) for r in rows]
+
+
+def get_undated_events(conn: sqlite3.Connection) -> list[tuple[int, str]]:
+    """Return (event_id, url) for final fixtures with no date recorded."""
+    rows = conn.execute(
+        """
+        SELECT f.event_id,
+               COALESCE(f.event_url, '/event/' || f.event_id || '/') AS url
+        FROM fixtures f
+        WHERE f.status = 'final' AND f.date IS NULL
+        ORDER BY f.event_id
+        """
+    ).fetchall()
+    return [(r["event_id"], r["url"]) for r in rows]

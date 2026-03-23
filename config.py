@@ -2,11 +2,14 @@ BASE_URL = "https://www.siha-uk.co.uk"
 FIXTURES_URL = f"{BASE_URL}/fixtures-25-26/"
 EVENT_URL = f"{BASE_URL}/event/{{}}/"
 
+LEAGUE_TABLE_URL = f"{BASE_URL}/snl-league-table-25-26/"
+
 STATS_URLS = {
     "SNL": {
         "skaters":    f"{BASE_URL}/list/scottish-cup-top-points-scorers-24-25-2-2-2/",
         "netminders": f"{BASE_URL}/list/snl-top-netminder-sv-2-3-3-2/",
         "teams":      f"{BASE_URL}/table/scottish-national-league-snl-24-25-2-2/",
+        "standings":  LEAGUE_TABLE_URL,
     },
     "Scottish Cup": {
         "skaters":    f"{BASE_URL}/list/scottish-cup-top-points-scorers-24-25-3/",

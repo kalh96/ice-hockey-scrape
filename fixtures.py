@@ -9,11 +9,27 @@ from bs4 import BeautifulSoup
 logger = logging.getLogger(__name__)
 
 
+import zlib
+
+
 def _extract_event_id(href: str) -> int | None:
+    """Extract numeric event ID, or derive a stable integer from a slug URL."""
     m = re.search(r"/event/(\d+)/", href)
     if m:
         return int(m.group(1))
+    # Slug-based URL e.g. /event/thunder-vs-caps-2/
+    m = re.search(r"/event/([a-z0-9][a-z0-9\-]+[a-z0-9])/", href)
+    if m:
+        slug = m.group(1)
+        # Use CRC32 + offset to produce a stable ID outside the normal 5-digit range
+        return zlib.crc32(slug.encode()) & 0x7FFFFFFF | 0x40000000
     return None
+
+
+def _event_url(href: str) -> str | None:
+    """Return the path portion of an event href, or None if not an event link."""
+    m = re.search(r"(/event/[^/\"' ]+/)", href)
+    return m.group(1) if m else None
 
 
 def _extract_team_slug(href: str) -> str:
@@ -27,11 +43,14 @@ def _slugify(name: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
 
 
-def _normalise_competition(raw: str) -> str:
-    raw = raw.strip()
-    if "cup" in raw.lower():
+def _normalise_competition(raw: str) -> str | None:
+    """Return competition name, or None if the heading is not a recognised competition."""
+    raw = raw.strip().lower()
+    if "cup" in raw:
         return "Scottish Cup"
-    return "SNL"
+    if "snl" in raw or "scottish national league" in raw:
+        return "SNL"
+    return None
 
 
 def parse_fixtures_page(soup: BeautifulSoup) -> list[dict]:
@@ -57,7 +76,11 @@ def parse_fixtures_page(soup: BeautifulSoup) -> list[dict]:
             event_link.select_one(".sp-scoreboard-league") or
             event_link.select_one(".sp-event-league")
         )
-        competition_name = competition_el.get_text(strip=True) if competition_el else "SNL"
+        competition_name = (competition_el.get_text(strip=True) if competition_el else None) or "SNL"
+        competition = _normalise_competition(competition_name)
+        if competition is None:
+            logger.debug("Skipping scoreboard event %s — unknown competition %r", href, competition_name)
+            continue
 
         date_el = event_link.select_one(".sp-scoreboard-date")
         date_str = date_el.get_text(strip=True) if date_el else None
@@ -92,7 +115,7 @@ def parse_fixtures_page(soup: BeautifulSoup) -> list[dict]:
 
         fixtures[event_id] = {
             "event_id":       event_id,
-            "competition":    _normalise_competition(competition_name),
+            "competition":    competition,
             "date":           date_str,
             "home_team_slug": home_slug,
             "home_team_name": home_name,
@@ -101,6 +124,7 @@ def parse_fixtures_page(soup: BeautifulSoup) -> list[dict]:
             "home_score":     home_score,
             "away_score":     away_score,
             "status":         status,
+            "event_url":      _event_url(href),
         }
 
     logger.info("Parsed %d fixtures from scoreboard", len(fixtures))
@@ -109,9 +133,11 @@ def parse_fixtures_page(soup: BeautifulSoup) -> list[dict]:
     for matrix in soup.find_all("table", class_="sp-event-matrix"):
         # Determine competition from the nearest preceding heading
         heading = matrix.find_previous(["h2", "h3", "h4", "h5"])
-        competition = _normalise_competition(
-            heading.get_text(strip=True) if heading else "SNL"
-        )
+        heading_text = heading.get_text(strip=True) if heading else ""
+        competition = _normalise_competition(heading_text)
+        if competition is None:
+            logger.debug("Skipping matrix — unknown competition %r", heading_text)
+            continue
 
         # Build column index → (away_slug, away_name) from thead
         thead = matrix.find("thead")
@@ -157,7 +183,7 @@ def parse_fixtures_page(soup: BeautifulSoup) -> list[dict]:
                     away_slug = away_name = ""
 
                 # Each cell may contain one or more event links
-                for link in cell.find_all("a", href=re.compile(r"/event/\d+/")):
+                for link in cell.find_all("a", href=re.compile(r"/event/[^/\"' ]+/")):
                     event_id = _extract_event_id(link["href"])
                     if event_id is None:
                         continue
@@ -173,7 +199,8 @@ def parse_fixtures_page(soup: BeautifulSoup) -> list[dict]:
                         home_score = away_score = None
                         status = "scheduled"
 
-                    # Only add if not already captured by the scoreboard (which has date info)
+                    # Always update with matrix team info (canonical slugs from hrefs).
+                    # Preserve date and score from scoreboard if already captured.
                     if event_id not in fixtures:
                         fixtures[event_id] = {
                             "event_id":       event_id,
@@ -186,7 +213,14 @@ def parse_fixtures_page(soup: BeautifulSoup) -> list[dict]:
                             "home_score":     home_score,
                             "away_score":     away_score,
                             "status":         status,
+                            "event_url":      _event_url(link["href"]),
                         }
+                    else:
+                        # Update team info from matrix (more canonical than scoreboard)
+                        fixtures[event_id]["home_team_slug"] = home_slug
+                        fixtures[event_id]["home_team_name"] = home_name
+                        fixtures[event_id]["away_team_slug"] = away_slug
+                        fixtures[event_id]["away_team_name"] = away_name
 
     matrix_total = len(fixtures)
     logger.info("Parsed %d total fixtures (scoreboard + matrix)", matrix_total)
