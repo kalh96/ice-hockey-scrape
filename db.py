@@ -376,6 +376,20 @@ def upsert_team_season_stat(
     )
 
 
+def update_fixture_date(conn: sqlite3.Connection, event_id: int, date: str) -> None:
+    conn.execute(
+        "UPDATE fixtures SET date = ? WHERE event_id = ?", (date, event_id)
+    )
+
+
+def get_undated_event_ids(conn: sqlite3.Connection) -> list[int]:
+    """Return event_ids for final fixtures that have no date recorded."""
+    rows = conn.execute(
+        "SELECT event_id FROM fixtures WHERE status = 'final' AND date IS NULL ORDER BY event_id"
+    ).fetchall()
+    return [r["event_id"] for r in rows]
+
+
 def get_unscraped_event_ids(conn: sqlite3.Connection) -> list[int]:
     """Return event_ids that are final but have no player stats yet."""
     rows = conn.execute(

@@ -89,6 +89,9 @@ def run_event_detail_pass(conn, force_event_id: int | None = None) -> None:
             # Write all event data in a single transaction
             conn.execute("BEGIN")
 
+            if data.get("date"):
+                db.update_fixture_date(conn, event_id, data["date"])
+
             for ps in data["period_scores"]:
                 team_id = db.upsert_team(conn, ps["team_slug"], ps["team_name"])
                 db.upsert_period_scores(
@@ -120,6 +123,26 @@ def run_event_detail_pass(conn, force_event_id: int | None = None) -> None:
             skipped += 1
 
     logger.info("Event detail pass complete: %d scraped, %d skipped", scraped, skipped)
+
+
+def run_date_backfill_pass(conn) -> None:
+    """Fetch event pages for completed fixtures that have no date recorded."""
+    todo = db.get_undated_event_ids(conn)
+    if not todo:
+        return
+    logger.info("=== DATE BACKFILL PASS (%d events) ===", len(todo))
+    updated = 0
+    for event_id in todo:
+        url = EVENT_URL.format(event_id)
+        soup = scraper_mod.get_soup(url)
+        if soup is None:
+            continue
+        data = events_mod.parse_event_page(event_id, soup)
+        if data.get("date"):
+            db.update_fixture_date(conn, event_id, data["date"])
+            updated += 1
+    conn.commit()
+    logger.info("Date backfill complete: %d dates updated", updated)
 
 
 def run_season_stats_pass(conn) -> None:
@@ -214,6 +237,7 @@ def main() -> None:
         if not args.fixtures_only:
             if not args.stats_only:
                 run_event_detail_pass(conn, force_event_id=args.event)
+            run_date_backfill_pass(conn)
             run_season_stats_pass(conn)
 
     finally:

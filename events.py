@@ -52,23 +52,49 @@ def parse_event_page(event_id: int, soup: BeautifulSoup) -> dict:
     """
     Returns:
     {
-        "period_scores": [
-            {"team_slug": str, "team_name": str,
-             "period_1": int|None, ..., "ppg": int|None, "ppo": int|None, "outcome": str|None}
-        ],
-        "player_stats": [
-            {"team_slug": str, "team_name": str,
-             "player_slug": str, "player_name": str,
-             "jersey_number": str|None, "position": str|None,
-             "goals": int, "assists": int, "pim": int,
-             "shots_against": int|None, "saves": int|None,
-             "goals_against": int|None, "toi": str|None}
-        ]
+        "date": str|None,   ISO date string "YYYY-MM-DD HH:MM"
+        "period_scores": [...],
+        "player_stats": [...]
     }
     """
     period_scores = _parse_period_scores(event_id, soup)
     player_stats = _parse_player_stats(event_id, soup)
-    return {"period_scores": period_scores, "player_stats": player_stats}
+    date = _parse_event_date(soup)
+    return {"date": date, "period_scores": period_scores, "player_stats": player_stats}
+
+
+def _parse_event_date(soup: BeautifulSoup) -> str | None:
+    """Extract date/time from the sp-event-details table, returning 'YYYY-MM-DD HH:MM'."""
+    details = soup.find("table", class_="sp-event-details")
+    if details is None:
+        return None
+
+    # Build column name → value map from thead/tbody
+    headers = [th.get_text(strip=True).lower() for th in details.select("thead th")]
+    cells = details.select("tbody tr:first-of-type td")
+    col = {h: cells[i].get_text(strip=True) for i, h in enumerate(headers) if i < len(cells)}
+
+    date_str = col.get("date")
+    time_str = col.get("time")
+
+    if not date_str:
+        return None
+
+    # Date format from site: DD/MM/YYYY, time: "5:00 pm"
+    try:
+        from datetime import datetime
+        dt = datetime.strptime(date_str, "%d/%m/%Y")
+        if time_str:
+            for fmt in ("%I:%M %p", "%H:%M"):
+                try:
+                    t = datetime.strptime(time_str, fmt)
+                    dt = dt.replace(hour=t.hour, minute=t.minute)
+                    break
+                except ValueError:
+                    pass
+        return dt.strftime("%Y-%m-%d %H:%M")
+    except ValueError:
+        return date_str
 
 
 def _parse_period_scores(event_id: int, soup: BeautifulSoup) -> list[dict]:
