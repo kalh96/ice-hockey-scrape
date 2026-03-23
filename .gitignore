@@ -1,0 +1,4 @@
+__pycache__/
+*.pyc
+siha.db
+scraper.log
