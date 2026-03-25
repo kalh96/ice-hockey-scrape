@@ -79,7 +79,7 @@
                 <td>{{ t.pos }}</td>
                 <td>
                   <a href="{{ url_for('team_detail', slug=t.name|team_slug) }}" class="team-name-link">
-                    <img src="{{ url_for('static', filename='img/teams/' + (t.name|team_logo)) }}"
+                    <img src="{{ url_for('static', filename='img/teams/' + (t.name|team_logo)) }}?v={{ static_version }}"
                          alt="" class="team-logo-sm" onerror="this.style.display='none'">
                     {{ t.name | full_name }}
                   </a>

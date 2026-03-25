@@ -9,7 +9,7 @@
     <a href="{{ url_for('team_detail', slug=t.slug) }}" class="team-card">
       <div class="team-card-logo">
         {% if t.logo %}
-          <img src="{{ url_for('static', filename='img/teams/' + t.logo) }}"
+          <img src="{{ url_for('static', filename='img/teams/' + t.logo) }}?v={{ static_version }}"
                alt="{{ t.full }}"
                class="team-logo-lg"
                onerror="this.style.display='none'">
