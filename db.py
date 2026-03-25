@@ -15,6 +15,7 @@ def get_connection(db_path: str) -> sqlite3.Connection:
 
 
 def init_schema(conn: sqlite3.Connection) -> None:
+    # Base schema — CREATE IF NOT EXISTS is safe to re-run
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS competitions (
             id   INTEGER PRIMARY KEY,
@@ -36,6 +37,7 @@ def init_schema(conn: sqlite3.Connection) -> None:
         CREATE TABLE IF NOT EXISTS fixtures (
             event_id       INTEGER PRIMARY KEY,
             competition_id INTEGER NOT NULL REFERENCES competitions(id),
+            season         TEXT    NOT NULL DEFAULT '2025-26',
             date           TEXT,
             home_team_id   INTEGER REFERENCES teams(id),
             away_team_id   INTEGER REFERENCES teams(id),
@@ -45,7 +47,7 @@ def init_schema(conn: sqlite3.Connection) -> None:
             scraped_at     TEXT    NOT NULL,
             event_url      TEXT
         );
-        -- Add event_url column if upgrading an existing database
+
         CREATE TABLE IF NOT EXISTS _migrations (id INTEGER PRIMARY KEY);
         INSERT OR IGNORE INTO _migrations VALUES (1);
 
@@ -81,6 +83,7 @@ def init_schema(conn: sqlite3.Connection) -> None:
 
         CREATE TABLE IF NOT EXISTS season_skater_stats (
             id             INTEGER PRIMARY KEY,
+            season         TEXT    NOT NULL DEFAULT '2025-26',
             competition_id INTEGER NOT NULL REFERENCES competitions(id),
             player_id      INTEGER NOT NULL REFERENCES players(id),
             team_id        INTEGER NOT NULL REFERENCES teams(id),
@@ -91,11 +94,12 @@ def init_schema(conn: sqlite3.Connection) -> None:
             total_points   INTEGER,
             pim            INTEGER,
             scraped_at     TEXT    NOT NULL,
-            UNIQUE (competition_id, player_id)
+            UNIQUE (season, competition_id, player_id)
         );
 
         CREATE TABLE IF NOT EXISTS season_netminder_stats (
             id             INTEGER PRIMARY KEY,
+            season         TEXT    NOT NULL DEFAULT '2025-26',
             competition_id INTEGER NOT NULL REFERENCES competitions(id),
             player_id      INTEGER NOT NULL REFERENCES players(id),
             team_id        INTEGER NOT NULL REFERENCES teams(id),
@@ -107,11 +111,12 @@ def init_schema(conn: sqlite3.Connection) -> None:
             gaa            REAL,
             toi            TEXT,
             scraped_at     TEXT    NOT NULL,
-            UNIQUE (competition_id, player_id)
+            UNIQUE (season, competition_id, player_id)
         );
 
         CREATE TABLE IF NOT EXISTS team_season_stats (
             id             INTEGER PRIMARY KEY,
+            season         TEXT    NOT NULL DEFAULT '2025-26',
             competition_id INTEGER NOT NULL REFERENCES competitions(id),
             team_id        INTEGER NOT NULL REFERENCES teams(id),
             pos            INTEGER,
@@ -132,7 +137,7 @@ def init_schema(conn: sqlite3.Connection) -> None:
             shg            INTEGER,
             shga           INTEGER,
             scraped_at     TEXT    NOT NULL,
-            UNIQUE (competition_id, team_id)
+            UNIQUE (season, competition_id, team_id)
         );
     """)
 
@@ -142,6 +147,112 @@ def init_schema(conn: sqlite3.Connection) -> None:
             "INSERT OR IGNORE INTO competitions (name) VALUES (?)", (name,)
         )
     conn.commit()
+
+    # ---------------------------------------------------------------------------
+    # Migrations
+    # ---------------------------------------------------------------------------
+    applied = {r[0] for r in conn.execute("SELECT id FROM _migrations").fetchall()}
+
+    if 2 not in applied:
+        # Add season column to all season-specific tables.
+        # fixtures: simple ALTER TABLE (no unique constraint change needed).
+        # The three stats tables require recreation to update their UNIQUE constraints.
+        conn.executescript("""
+            PRAGMA foreign_keys = OFF;
+
+            ALTER TABLE fixtures ADD COLUMN season TEXT NOT NULL DEFAULT '2025-26';
+
+            CREATE TABLE season_skater_stats_new (
+                id             INTEGER PRIMARY KEY,
+                season         TEXT    NOT NULL DEFAULT '2025-26',
+                competition_id INTEGER NOT NULL REFERENCES competitions(id),
+                player_id      INTEGER NOT NULL REFERENCES players(id),
+                team_id        INTEGER NOT NULL REFERENCES teams(id),
+                position       TEXT,
+                gp             INTEGER,
+                goals          INTEGER,
+                assists        INTEGER,
+                total_points   INTEGER,
+                pim            INTEGER,
+                scraped_at     TEXT    NOT NULL,
+                UNIQUE (season, competition_id, player_id)
+            );
+            INSERT INTO season_skater_stats_new
+                (season, competition_id, player_id, team_id, position,
+                 gp, goals, assists, total_points, pim, scraped_at)
+            SELECT '2025-26', competition_id, player_id, team_id, position,
+                   gp, goals, assists, total_points, pim, scraped_at
+            FROM season_skater_stats;
+            DROP TABLE season_skater_stats;
+            ALTER TABLE season_skater_stats_new RENAME TO season_skater_stats;
+
+            CREATE TABLE season_netminder_stats_new (
+                id             INTEGER PRIMARY KEY,
+                season         TEXT    NOT NULL DEFAULT '2025-26',
+                competition_id INTEGER NOT NULL REFERENCES competitions(id),
+                player_id      INTEGER NOT NULL REFERENCES players(id),
+                team_id        INTEGER NOT NULL REFERENCES teams(id),
+                gp             INTEGER,
+                shots_against  INTEGER,
+                saves          INTEGER,
+                goals_against  INTEGER,
+                save_pct       REAL,
+                gaa            REAL,
+                toi            TEXT,
+                scraped_at     TEXT    NOT NULL,
+                UNIQUE (season, competition_id, player_id)
+            );
+            INSERT INTO season_netminder_stats_new
+                (season, competition_id, player_id, team_id,
+                 gp, shots_against, saves, goals_against, save_pct, gaa, toi,
+                 scraped_at)
+            SELECT '2025-26', competition_id, player_id, team_id,
+                   gp, shots_against, saves, goals_against, save_pct, gaa, toi,
+                   scraped_at
+            FROM season_netminder_stats;
+            DROP TABLE season_netminder_stats;
+            ALTER TABLE season_netminder_stats_new RENAME TO season_netminder_stats;
+
+            CREATE TABLE team_season_stats_new (
+                id             INTEGER PRIMARY KEY,
+                season         TEXT    NOT NULL DEFAULT '2025-26',
+                competition_id INTEGER NOT NULL REFERENCES competitions(id),
+                team_id        INTEGER NOT NULL REFERENCES teams(id),
+                pos            INTEGER,
+                gp             INTEGER,
+                wins           INTEGER,
+                losses         INTEGER,
+                otl            INTEGER,
+                gf             INTEGER,
+                ga             INTEGER,
+                goal_diff      INTEGER,
+                pts            INTEGER,
+                ppo            INTEGER,
+                ppg            INTEGER,
+                pp_pct         REAL,
+                ppga           INTEGER,
+                ppoa           INTEGER,
+                pk_pct         REAL,
+                shg            INTEGER,
+                shga           INTEGER,
+                scraped_at     TEXT    NOT NULL,
+                UNIQUE (season, competition_id, team_id)
+            );
+            INSERT INTO team_season_stats_new
+                (season, competition_id, team_id, pos, gp, wins, losses, otl,
+                 gf, ga, goal_diff, pts, ppo, ppg, pp_pct, ppga, ppoa,
+                 pk_pct, shg, shga, scraped_at)
+            SELECT '2025-26', competition_id, team_id, pos, gp, wins, losses, otl,
+                   gf, ga, goal_diff, pts, ppo, ppg, pp_pct, ppga, ppoa,
+                   pk_pct, shg, shga, scraped_at
+            FROM team_season_stats;
+            DROP TABLE team_season_stats;
+            ALTER TABLE team_season_stats_new RENAME TO team_season_stats;
+
+            INSERT OR IGNORE INTO _migrations VALUES (2);
+
+            PRAGMA foreign_keys = ON;
+        """)
 
 
 def now_iso() -> str:
@@ -184,6 +295,7 @@ def upsert_fixture(
     conn: sqlite3.Connection,
     event_id: int,
     competition_id: int,
+    season: str,
     date: str | None,
     home_team_id: int,
     away_team_id: int,
@@ -195,11 +307,12 @@ def upsert_fixture(
     conn.execute(
         """
         INSERT INTO fixtures
-            (event_id, competition_id, date, home_team_id, away_team_id,
+            (event_id, competition_id, season, date, home_team_id, away_team_id,
              home_score, away_score, status, scraped_at, event_url)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(event_id) DO UPDATE SET
             competition_id = excluded.competition_id,
+            season         = excluded.season,
             date           = COALESCE(excluded.date, fixtures.date),
             home_team_id   = CASE WHEN excluded.home_team_id = 7 THEN fixtures.home_team_id ELSE excluded.home_team_id END,
             away_team_id   = CASE WHEN excluded.away_team_id = 7 THEN fixtures.away_team_id ELSE excluded.away_team_id END,
@@ -210,7 +323,7 @@ def upsert_fixture(
             event_url      = COALESCE(excluded.event_url, fixtures.event_url)
         """,
         (
-            event_id, competition_id, date, home_team_id, away_team_id,
+            event_id, competition_id, season, date, home_team_id, away_team_id,
             home_score, away_score, status, now_iso(), event_url,
         ),
     )
@@ -285,6 +398,7 @@ def upsert_event_player_stat(
 
 def upsert_season_skater(
     conn: sqlite3.Connection,
+    season: str,
     competition_id: int,
     player_id: int,
     team_id: int,
@@ -298,10 +412,10 @@ def upsert_season_skater(
     conn.execute(
         """
         INSERT INTO season_skater_stats
-            (competition_id, player_id, team_id, position,
+            (season, competition_id, player_id, team_id, position,
              gp, goals, assists, total_points, pim, scraped_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT(competition_id, player_id) DO UPDATE SET
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(season, competition_id, player_id) DO UPDATE SET
             team_id      = excluded.team_id,
             position     = excluded.position,
             gp           = excluded.gp,
@@ -312,7 +426,7 @@ def upsert_season_skater(
             scraped_at   = excluded.scraped_at
         """,
         (
-            competition_id, player_id, team_id, position,
+            season, competition_id, player_id, team_id, position,
             gp, goals, assists, total_points, pim, now_iso(),
         ),
     )
@@ -320,6 +434,7 @@ def upsert_season_skater(
 
 def upsert_season_netminder(
     conn: sqlite3.Connection,
+    season: str,
     competition_id: int,
     player_id: int,
     team_id: int,
@@ -334,11 +449,11 @@ def upsert_season_netminder(
     conn.execute(
         """
         INSERT INTO season_netminder_stats
-            (competition_id, player_id, team_id,
+            (season, competition_id, player_id, team_id,
              gp, shots_against, saves, goals_against, save_pct, gaa, toi,
              scraped_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT(competition_id, player_id) DO UPDATE SET
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(season, competition_id, player_id) DO UPDATE SET
             team_id       = excluded.team_id,
             gp            = excluded.gp,
             shots_against = excluded.shots_against,
@@ -350,7 +465,7 @@ def upsert_season_netminder(
             scraped_at    = excluded.scraped_at
         """,
         (
-            competition_id, player_id, team_id,
+            season, competition_id, player_id, team_id,
             gp, shots_against, saves, goals_against, save_pct, gaa, toi,
             now_iso(),
         ),
@@ -359,6 +474,7 @@ def upsert_season_netminder(
 
 def upsert_team_season_stat(
     conn: sqlite3.Connection,
+    season: str,
     competition_id: int,
     team_id: int,
     **kwargs,
@@ -375,18 +491,19 @@ def upsert_team_season_stat(
     conn.execute(
         f"""
         INSERT INTO team_season_stats
-            (competition_id, team_id, {cols}, scraped_at)
-        VALUES (?, ?, {placeholders}, ?)
-        ON CONFLICT(competition_id, team_id) DO UPDATE SET
+            (season, competition_id, team_id, {cols}, scraped_at)
+        VALUES (?, ?, ?, {placeholders}, ?)
+        ON CONFLICT(season, competition_id, team_id) DO UPDATE SET
             {updates},
             scraped_at = excluded.scraped_at
         """,
-        [competition_id, team_id] + values + [now_iso()],
+        [season, competition_id, team_id] + values + [now_iso()],
     )
 
 
 def upsert_standings(
     conn: sqlite3.Connection,
+    season: str,
     competition_id: int,
     team_id: int,
     pos: int | None,
@@ -403,21 +520,23 @@ def upsert_standings(
     conn.execute(
         """
         INSERT INTO team_season_stats
-            (competition_id, team_id, pos, gp, wins, losses, otl, gf, ga, goal_diff, pts, scraped_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT(competition_id, team_id) DO UPDATE SET
-            pos       = excluded.pos,
-            gp        = excluded.gp,
-            wins      = excluded.wins,
-            losses    = excluded.losses,
-            otl       = excluded.otl,
-            gf        = excluded.gf,
-            ga        = excluded.ga,
-            goal_diff = excluded.goal_diff,
-            pts       = excluded.pts,
+            (season, competition_id, team_id, pos, gp, wins, losses, otl,
+             gf, ga, goal_diff, pts, scraped_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(season, competition_id, team_id) DO UPDATE SET
+            pos        = excluded.pos,
+            gp         = excluded.gp,
+            wins       = excluded.wins,
+            losses     = excluded.losses,
+            otl        = excluded.otl,
+            gf         = excluded.gf,
+            ga         = excluded.ga,
+            goal_diff  = excluded.goal_diff,
+            pts        = excluded.pts,
             scraped_at = excluded.scraped_at
         """,
-        (competition_id, team_id, pos, gp, wins, losses, otl, gf, ga, goal_diff, pts, now_iso()),
+        (season, competition_id, team_id, pos, gp, wins, losses, otl,
+         gf, ga, goal_diff, pts, now_iso()),
     )
 
 
@@ -427,32 +546,16 @@ def update_fixture_date(conn: sqlite3.Connection, event_id: int, date: str) -> N
     )
 
 
-def get_undated_event_ids(conn: sqlite3.Connection) -> list[int]:
-    """Return event_ids for final fixtures that have no date recorded."""
-    rows = conn.execute(
-        "SELECT event_id FROM fixtures WHERE status = 'final' AND date IS NULL ORDER BY event_id"
-    ).fetchall()
-    return [r["event_id"] for r in rows]
-
-
 def get_unscraped_events(conn: sqlite3.Connection) -> list[tuple[int, str]]:
-    """Return (event_id, url) for final fixtures with no player stats and no period scores yet.
-
-    Events that have period scores but no player stats have already been fetched
-    (the match report exists but the player table was not published); skip them.
-    """
+    """Return (event_id, url) for final fixtures with no player stats and no period scores yet."""
     rows = conn.execute(
         """
         SELECT f.event_id,
                COALESCE(f.event_url, '/event/' || f.event_id || '/') AS url
         FROM fixtures f
         WHERE f.status = 'final'
-          AND f.event_id NOT IN (
-              SELECT DISTINCT event_id FROM event_player_stats
-          )
-          AND f.event_id NOT IN (
-              SELECT DISTINCT event_id FROM event_period_scores
-          )
+          AND f.event_id NOT IN (SELECT DISTINCT event_id FROM event_player_stats)
+          AND f.event_id NOT IN (SELECT DISTINCT event_id FROM event_period_scores)
         ORDER BY f.event_id
         """
     ).fetchall()

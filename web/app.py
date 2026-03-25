@@ -9,7 +9,7 @@ import markdown2
 from flask import Flask, abort, render_template, request
 
 import db_queries
-from config import ARTICLES_DIR, COMPETITIONS
+from config import ARTICLES_DIR, COMPETITIONS, CURRENT_SEASON, SEASONS
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-secret-change-in-prod")
@@ -71,9 +71,9 @@ def inject_globals():
 
 @app.route("/")
 def home():
-    recent = db_queries.get_recent_results("SNL", limit=5)
-    upcoming = db_queries.get_upcoming_fixtures("SNL", limit=3)
-    standings = db_queries.get_standings("SNL")
+    recent = db_queries.get_recent_results("SNL", season=CURRENT_SEASON, limit=5)
+    upcoming = db_queries.get_upcoming_fixtures("SNL", season=CURRENT_SEASON, limit=3)
+    standings = db_queries.get_standings("SNL", season=CURRENT_SEASON)
     articles = _load_articles()[:3]
     return render_template(
         "home.html",
@@ -101,16 +101,21 @@ def article_detail(slug):
 
 @app.route("/statistics/")
 def statistics():
+    season = request.args.get("season", CURRENT_SEASON)
+    if season not in SEASONS:
+        season = CURRENT_SEASON
     comp = request.args.get("comp", "SNL")
     if comp not in COMPETITIONS:
         comp = "SNL"
-    standings = db_queries.get_standings(comp) if comp == "SNL" else []
-    top_skaters = db_queries.get_skater_stats(comp)[:5]
-    top_netminders = db_queries.get_netminder_stats(comp)[:5]
+    standings = db_queries.get_standings(comp, season=season) if comp == "SNL" else []
+    top_skaters = db_queries.get_skater_stats(comp, season=season)[:5]
+    top_netminders = db_queries.get_netminder_stats(comp, season=season)[:5]
     return render_template(
         "stats.html",
         comp=comp,
         competitions=COMPETITIONS,
+        season=season,
+        seasons=SEASONS,
         standings=standings,
         top_skaters=top_skaters,
         top_netminders=top_netminders,
@@ -119,42 +124,57 @@ def statistics():
 
 @app.route("/statistics/skaters/")
 def stats_skaters():
+    season = request.args.get("season", CURRENT_SEASON)
+    if season not in SEASONS:
+        season = CURRENT_SEASON
     comp = request.args.get("comp", "SNL")
     if comp not in COMPETITIONS:
         comp = "SNL"
-    skaters = db_queries.get_skater_stats(comp)
+    skaters = db_queries.get_skater_stats(comp, season=season)
     return render_template(
         "stats_skaters.html",
         comp=comp,
         competitions=COMPETITIONS,
+        season=season,
+        seasons=SEASONS,
         skaters=skaters,
     )
 
 
 @app.route("/statistics/netminders/")
 def stats_netminders():
+    season = request.args.get("season", CURRENT_SEASON)
+    if season not in SEASONS:
+        season = CURRENT_SEASON
     comp = request.args.get("comp", "SNL")
     if comp not in COMPETITIONS:
         comp = "SNL"
-    netminders = db_queries.get_netminder_stats(comp)
+    netminders = db_queries.get_netminder_stats(comp, season=season)
     return render_template(
         "stats_netminders.html",
         comp=comp,
         competitions=COMPETITIONS,
+        season=season,
+        seasons=SEASONS,
         netminders=netminders,
     )
 
 
 @app.route("/fixtures/")
 def fixtures():
+    season = request.args.get("season", CURRENT_SEASON)
+    if season not in SEASONS:
+        season = CURRENT_SEASON
     comp = request.args.get("comp", "all")
-    all_fixtures = db_queries.get_all_fixtures(comp)
+    all_fixtures = db_queries.get_all_fixtures(comp, season=season)
     upcoming = [f for f in all_fixtures if f["status"] == "scheduled"]
     results = [f for f in all_fixtures if f["status"] == "final"]
     return render_template(
         "fixtures.html",
         comp=comp,
         competitions=["all"] + COMPETITIONS,
+        season=season,
+        seasons=SEASONS,
         upcoming=upcoming,
         results=results,
     )

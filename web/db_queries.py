@@ -1,7 +1,7 @@
 """Read-only database queries for the web layer."""
 
 import sqlite3
-from config import DB_PATH
+from config import DB_PATH, CURRENT_SEASON
 
 
 def get_connection():
@@ -12,7 +12,7 @@ def get_connection():
     return conn
 
 
-def get_standings(comp_name="SNL"):
+def get_standings(comp_name="SNL", season=CURRENT_SEASON):
     conn = get_connection()
     try:
         rows = conn.execute(
@@ -23,17 +23,17 @@ def get_standings(comp_name="SNL"):
             FROM team_season_stats s
             JOIN teams t ON t.id = s.team_id
             JOIN competitions c ON c.id = s.competition_id
-            WHERE c.name = ?
+            WHERE c.name = ? AND s.season = ?
             ORDER BY s.pos
             """,
-            (comp_name,),
+            (comp_name, season),
         ).fetchall()
         return [dict(r) for r in rows]
     finally:
         conn.close()
 
 
-def get_recent_results(comp_name="SNL", limit=5):
+def get_recent_results(comp_name="SNL", season=CURRENT_SEASON, limit=5):
     conn = get_connection()
     try:
         rows = conn.execute(
@@ -46,18 +46,19 @@ def get_recent_results(comp_name="SNL", limit=5):
             JOIN teams at ON at.id = f.away_team_id
             JOIN competitions c ON c.id = f.competition_id
             WHERE f.status = 'final'
+              AND f.season = ?
               AND (? = 'all' OR c.name = ?)
             ORDER BY COALESCE(f.date, '0') DESC, f.event_id DESC
             LIMIT ?
             """,
-            (comp_name, comp_name, limit),
+            (season, comp_name, comp_name, limit),
         ).fetchall()
         return [dict(r) for r in rows]
     finally:
         conn.close()
 
 
-def get_upcoming_fixtures(comp_name="SNL", limit=5):
+def get_upcoming_fixtures(comp_name="SNL", season=CURRENT_SEASON, limit=5):
     conn = get_connection()
     try:
         rows = conn.execute(
@@ -70,18 +71,19 @@ def get_upcoming_fixtures(comp_name="SNL", limit=5):
             JOIN teams at ON at.id = f.away_team_id
             JOIN competitions c ON c.id = f.competition_id
             WHERE f.status = 'scheduled'
+              AND f.season = ?
               AND (? = 'all' OR c.name = ?)
             ORDER BY COALESCE(f.date, 'z') ASC, f.event_id ASC
             LIMIT ?
             """,
-            (comp_name, comp_name, limit),
+            (season, comp_name, comp_name, limit),
         ).fetchall()
         return [dict(r) for r in rows]
     finally:
         conn.close()
 
 
-def get_all_fixtures(comp_name="all"):
+def get_all_fixtures(comp_name="all", season=CURRENT_SEASON):
     conn = get_connection()
     try:
         rows = conn.execute(
@@ -93,19 +95,20 @@ def get_all_fixtures(comp_name="all"):
             JOIN teams ht ON ht.id = f.home_team_id
             JOIN teams at ON at.id = f.away_team_id
             JOIN competitions c ON c.id = f.competition_id
-            WHERE (? = 'all' OR c.name = ?)
+            WHERE f.season = ?
+              AND (? = 'all' OR c.name = ?)
             ORDER BY f.status ASC,
                      COALESCE(f.date, 'z') DESC,
                      f.event_id DESC
             """,
-            (comp_name, comp_name),
+            (season, comp_name, comp_name),
         ).fetchall()
         return [dict(r) for r in rows]
     finally:
         conn.close()
 
 
-def get_skater_stats(comp_name="SNL"):
+def get_skater_stats(comp_name="SNL", season=CURRENT_SEASON):
     conn = get_connection()
     try:
         rows = conn.execute(
@@ -116,17 +119,17 @@ def get_skater_stats(comp_name="SNL"):
             JOIN players p ON p.id = s.player_id
             JOIN teams t ON t.id = s.team_id
             JOIN competitions c ON c.id = s.competition_id
-            WHERE c.name = ?
+            WHERE c.name = ? AND s.season = ?
             ORDER BY s.total_points DESC, s.goals DESC, s.assists DESC
             """,
-            (comp_name,),
+            (comp_name, season),
         ).fetchall()
         return [dict(r) for r in rows]
     finally:
         conn.close()
 
 
-def get_netminder_stats(comp_name="SNL"):
+def get_netminder_stats(comp_name="SNL", season=CURRENT_SEASON):
     conn = get_connection()
     try:
         rows = conn.execute(
@@ -138,10 +141,10 @@ def get_netminder_stats(comp_name="SNL"):
             JOIN players p ON p.id = s.player_id
             JOIN teams t ON t.id = s.team_id
             JOIN competitions c ON c.id = s.competition_id
-            WHERE c.name = ?
+            WHERE c.name = ? AND s.season = ?
             ORDER BY s.save_pct DESC
             """,
-            (comp_name,),
+            (comp_name, season),
         ).fetchall()
         return [dict(r) for r in rows]
     finally:

@@ -10,7 +10,7 @@ import fixtures as fixtures_mod
 import scraper as scraper_mod
 import season_stats as season_stats_mod
 import team_stats as team_stats_mod
-from config import DB_PATH, EVENT_URL, STATS_URLS
+from config import CURRENT_SEASON, DB_PATH, EVENT_URL, STATS_URLS
 
 
 def setup_logging(verbose: bool = False) -> None:
@@ -50,6 +50,7 @@ def run_fixtures_pass(conn, fixtures_only: bool = False) -> None:
             conn,
             event_id=f["event_id"],
             competition_id=comp_id,
+            season=CURRENT_SEASON,
             date=f["date"],
             home_team_id=home_id,
             away_team_id=away_id,
@@ -162,7 +163,7 @@ def run_season_stats_pass(conn) -> None:
                 team_id = db.upsert_team(conn, r["team_slug"], r["team_name"])
                 player_id = db.upsert_player(conn, r["player_slug"], r["player_name"])
                 db.upsert_season_skater(
-                    conn, comp_id, player_id, team_id,
+                    conn, CURRENT_SEASON, comp_id, player_id, team_id,
                     r["position"], r["gp"], r["goals"], r["assists"],
                     r["total_points"], r["pim"],
                 )
@@ -179,7 +180,7 @@ def run_season_stats_pass(conn) -> None:
                 team_id = db.upsert_team(conn, r["team_slug"], r["team_name"])
                 player_id = db.upsert_player(conn, r["player_slug"], r["player_name"])
                 db.upsert_season_netminder(
-                    conn, comp_id, player_id, team_id,
+                    conn, CURRENT_SEASON, comp_id, player_id, team_id,
                     r["gp"], r["shots_against"], r["saves"], r["goals_against"],
                     r["save_pct"], r["gaa"], r["toi"],
                 )
@@ -195,7 +196,7 @@ def run_season_stats_pass(conn) -> None:
                 rows = team_stats_mod.parse_team_stats(soup)
                 for r in rows:
                     team_id = db.upsert_team(conn, r["team_slug"], r["team_name"])
-                    db.upsert_team_season_stat(conn, comp_id, team_id, **{
+                    db.upsert_team_season_stat(conn, CURRENT_SEASON, comp_id, team_id, **{
                         k: v for k, v in r.items()
                         if k not in ("team_slug", "team_name")
                     })
@@ -212,7 +213,7 @@ def run_season_stats_pass(conn) -> None:
                 for r in rows:
                     team_id = db.upsert_team(conn, r["team_slug"], r["team_name"])
                     db.upsert_standings(
-                        conn, comp_id, team_id,
+                        conn, CURRENT_SEASON, comp_id, team_id,
                         r.get("pos"), r.get("gp"), r.get("wins"), r.get("losses"),
                         r.get("otl"), r.get("gf"), r.get("ga"), r.get("goal_diff"), r.get("pts"),
                     )
@@ -241,14 +242,15 @@ def run_validation_pass(conn) -> None:
         FROM fixtures f
         JOIN teams t ON t.id IN (f.home_team_id, f.away_team_id)
         JOIN competitions c ON c.id = f.competition_id
-        WHERE f.status = 'final' AND c.name = 'SNL'
+        WHERE f.status = 'final' AND c.name = 'SNL' AND f.season = ?
           AND t.id IN (
               SELECT team_id FROM team_season_stats s2
               JOIN competitions c2 ON c2.id = s2.competition_id AND c2.name = 'SNL'
+              WHERE s2.season = ?
           )
         GROUP BY t.id
         ORDER BY w DESC, gf - ga DESC
-    """).fetchall()
+    """, (CURRENT_SEASON, CURRENT_SEASON)).fetchall()
     computed = {r["slug"]: dict(r) for r in rows}
 
     # Get scraped standings from team_season_stats
@@ -257,8 +259,8 @@ def run_validation_pass(conn) -> None:
         FROM team_season_stats s
         JOIN teams t ON t.id = s.team_id
         JOIN competitions c ON c.id = s.competition_id
-        WHERE c.name = 'SNL'
-    """).fetchall()
+        WHERE c.name = 'SNL' AND s.season = ?
+    """, (CURRENT_SEASON,)).fetchall()
     scraped = {r["slug"]: dict(r) for r in scraped_rows}
 
     if not scraped:

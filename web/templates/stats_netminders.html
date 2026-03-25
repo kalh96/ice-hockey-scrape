@@ -4,6 +4,16 @@
 {% block content %}
 <h1 class="page-title">Netminder Statistics</h1>
 
+{% if seasons | length > 1 %}
+<div class="season-selector">
+  <span class="season-label">Season:</span>
+  {% for s in seasons %}
+    <a href="{{ url_for('stats_netminders', season=s, comp=comp) }}"
+       class="season-tab {{ 'active' if s == season else '' }}">{{ s }}</a>
+  {% endfor %}
+</div>
+{% endif %}
+
 <div class="comp-tabs">
   {% for c in competitions %}
     <a href="{{ url_for('stats_netminders', comp=c) }}"

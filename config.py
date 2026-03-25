@@ -23,6 +23,8 @@ TEAM_NAME_OVERRIDES = {
     "paisleypirates": "Paisley Pirates",
 }
 
+CURRENT_SEASON = "2025-26"
+
 DB_PATH = "siha.db"
 REQUEST_DELAY = 1.5   # seconds between requests
 REQUEST_TIMEOUT = 20  # seconds per request
