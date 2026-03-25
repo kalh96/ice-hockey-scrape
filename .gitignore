@@ -1,4 +1,4 @@
 __pycache__/
 *.pyc
-siha.db
+# siha.db is committed so Render can serve live stats data
 scraper.log
