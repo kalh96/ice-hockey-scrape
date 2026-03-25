@@ -17,6 +17,12 @@ STATS_URLS = {
     },
 }
 
+# Canonical team name overrides — applied whenever a team is upserted.
+# Add entries here if the SIHA website returns an incorrect or abbreviated name.
+TEAM_NAME_OVERRIDES = {
+    "paisleypirates": "Paisley Pirates",
+}
+
 DB_PATH = "siha.db"
 REQUEST_DELAY = 1.5   # seconds between requests
 REQUEST_TIMEOUT = 20  # seconds per request

@@ -3,6 +3,8 @@
 import sqlite3
 from datetime import datetime, timezone
 
+from config import TEAM_NAME_OVERRIDES
+
 
 def get_connection(db_path: str) -> sqlite3.Connection:
     conn = sqlite3.connect(db_path)
@@ -156,6 +158,7 @@ def get_competition_id(conn: sqlite3.Connection, name: str) -> int:
 
 
 def upsert_team(conn: sqlite3.Connection, slug: str, name: str) -> int:
+    name = TEAM_NAME_OVERRIDES.get(slug, name)
     conn.execute(
         "INSERT INTO teams (slug, name) VALUES (?, ?)"
         " ON CONFLICT(slug) DO UPDATE SET name=excluded.name",
