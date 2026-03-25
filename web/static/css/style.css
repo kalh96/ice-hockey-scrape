@@ -812,6 +812,126 @@ tbody tr:last-child td { border-bottom: none; }
 .article-teams .badge:hover { background: var(--accent); }
 
 /* ============================================================
+   Tournament Bracket
+   ============================================================ */
+
+.bracket {
+  display: flex;
+  gap: 1.5rem;
+  overflow-x: auto;
+  padding-bottom: 1rem;
+  align-items: stretch;
+}
+
+.bracket-round {
+  flex: 1;
+  min-width: 160px;
+  display: flex;
+  flex-direction: column;
+}
+
+.bracket-round-name {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-muted);
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 2px solid var(--border);
+  white-space: nowrap;
+}
+
+.bracket-slots {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  flex: 1;
+  gap: 0.75rem;
+}
+
+.bracket-slot {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.bracket-match {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--bg-subtle);
+}
+
+.bracket-team {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.88rem;
+  gap: 0.5rem;
+}
+
+.bracket-team + .bracket-team {
+  border-top: 1px solid var(--border);
+}
+
+.bracket-team.winner {
+  font-weight: 700;
+  background: rgba(0, 43, 92, 0.05);
+}
+
+.bracket-team.loser {
+  color: var(--text-muted);
+}
+
+.bracket-team-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bracket-agg {
+  font-weight: 700;
+  font-size: 0.95rem;
+  min-width: 20px;
+  text-align: right;
+}
+
+.bracket-team.winner .bracket-agg {
+  color: var(--primary);
+}
+
+.bracket-legs {
+  border-top: 1px solid var(--border);
+  padding: 0.3rem 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.bracket-leg-link {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.bracket-leg-link:hover {
+  color: var(--accent);
+}
+
+.bracket-date {
+  border-top: 1px solid var(--border);
+  padding: 0.3rem 0.65rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* ============================================================
    Footer
    ============================================================ */
 

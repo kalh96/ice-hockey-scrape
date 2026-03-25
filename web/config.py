@@ -89,4 +89,32 @@ TEAM_BY_SLUG = {v["slug"]: k for k, v in TEAM_DISPLAY.items()}
 
 # Bump this string whenever you push CSS/JS changes to force Cloudflare to
 # fetch the new file instead of serving a stale cached copy.
-STATIC_VERSION = "20260325-4"
+STATIC_VERSION = "20260325-5"
+
+# Scottish Cup 2025-26 bracket structure.
+# Each round lists matchups; each matchup is a list of event IDs (leg 1, leg 2).
+# The Final has only one leg.
+CUP_BRACKET = [
+    {
+        "name": "Quarter-Finals",
+        "matchups": [
+            [17419, 17437],            # Wild vs Caps
+            [17429, 17448],            # Kilmarnock vs Lynx
+            [17442, 17471],            # Kestrels vs Rockets
+            [1932643317, 1221019340],  # Warriors vs Pirates
+        ],
+    },
+    {
+        "name": "Semi-Finals",
+        "matchups": [
+            [17499, 1644001149],       # Rockets vs Caps
+            [19240, 1149401995],       # Warriors vs Lynx
+        ],
+    },
+    {
+        "name": "Final",
+        "matchups": [
+            [1079283814],              # Caps vs Warriors
+        ],
+    },
+]

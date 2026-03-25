@@ -23,38 +23,68 @@
   {% endfor %}
 </div>
 
-{% if upcoming %}
-  <h2 class="section-title">Upcoming</h2>
-  <div class="result-list">
-    {% for f in upcoming %}
-      <div class="result-card">
-        <div class="team-home">{{ f.home_team | short_name }}</div>
-        <div class="result-card-centre">
-          <div class="score upcoming-score">vs</div>
-          {% if f.date %}<div class="meta">{{ f.date }}</div>{% endif %}
-          {% if comp == 'all' %}
-            <div class="meta">
-              <span class="badge {% if f.competition == 'Scottish Cup' %}cup{% endif %}">
-                {{ f.competition }}
-              </span>
+{% if bracket %}
+  <h2 class="section-title">2025–26 Scottish Cup</h2>
+  <div class="bracket">
+    {% for round in bracket %}
+      <div class="bracket-round">
+        <div class="bracket-round-name">{{ round.name }}</div>
+        <div class="bracket-slots">
+          {% for m in round.matchups %}
+            <div class="bracket-slot">
+              <div class="bracket-match">
+
+                {# Team rows #}
+                <div class="bracket-team {{ 'winner' if m.winner == m.team1 else ('loser' if m.winner else '') }}">
+                  <span class="bracket-team-name">{{ m.team1 | short_name }}</span>
+                  {% if m.t1_agg is not none %}
+                    <span class="bracket-agg">{{ m.t1_agg }}</span>
+                  {% endif %}
+                </div>
+                <div class="bracket-team {{ 'winner' if m.winner == m.team2 else ('loser' if m.winner else '') }}">
+                  <span class="bracket-team-name">{{ m.team2 | short_name }}</span>
+                  {% if m.t2_agg is not none %}
+                    <span class="bracket-agg">{{ m.t2_agg }}</span>
+                  {% endif %}
+                </div>
+
+                {# Leg scores or date #}
+                {% if m.status == 'final' and m.legs | length >= 2 %}
+                  <div class="bracket-legs">
+                    {% for leg in m.legs %}
+                      <a href="{{ url_for('event_detail', event_id=leg.event_id) }}" class="bracket-leg-link">
+                        {{ leg.home_team | short_name }} {{ leg.home_score }}–{{ leg.away_score }} {{ leg.away_team | short_name }}
+                      </a>
+                    {% endfor %}
+                  </div>
+                {% elif m.status == 'final' and m.legs %}
+                  <div class="bracket-legs">
+                    <a href="{{ url_for('event_detail', event_id=m.legs[0].event_id) }}" class="bracket-leg-link">
+                      {{ m.legs[0].home_team | short_name }} {{ m.t1_agg }}–{{ m.t2_agg }} {{ m.legs[0].away_team | short_name }}
+                    </a>
+                  </div>
+                {% elif m.status == 'scheduled' and m.date %}
+                  <div class="bracket-date">{{ m.date }}</div>
+                {% endif %}
+
+              </div>
             </div>
-          {% endif %}
+          {% endfor %}
         </div>
-        <div class="team-away">{{ f.away_team | short_name }}</div>
       </div>
     {% endfor %}
   </div>
 {% endif %}
 
-{% if results %}
-  <h2 class="section-title mt-2">Results</h2>
-  <div class="result-list">
-    {% for f in results %}
-      <a href="{{ url_for('event_detail', event_id=f.event_id) }}" class="result-card-link">
+{% if not bracket %}
+  {% if upcoming %}
+    <h2 class="section-title">Upcoming</h2>
+    <div class="result-list">
+      {% for f in upcoming %}
         <div class="result-card">
           <div class="team-home">{{ f.home_team | short_name }}</div>
           <div class="result-card-centre">
-            <div class="score">{{ f.home_score }} – {{ f.away_score }}</div>
+            <div class="score upcoming-score">vs</div>
             {% if f.date %}<div class="meta">{{ f.date }}</div>{% endif %}
             {% if comp == 'all' %}
               <div class="meta">
@@ -66,12 +96,37 @@
           </div>
           <div class="team-away">{{ f.away_team | short_name }}</div>
         </div>
-      </a>
-    {% endfor %}
-  </div>
-{% endif %}
+      {% endfor %}
+    </div>
+  {% endif %}
 
-{% if not upcoming and not results %}
-  <p class="no-data">No fixtures found.</p>
+  {% if results %}
+    <h2 class="section-title mt-2">Results</h2>
+    <div class="result-list">
+      {% for f in results %}
+        <a href="{{ url_for('event_detail', event_id=f.event_id) }}" class="result-card-link">
+          <div class="result-card">
+            <div class="team-home">{{ f.home_team | short_name }}</div>
+            <div class="result-card-centre">
+              <div class="score">{{ f.home_score }} – {{ f.away_score }}</div>
+              {% if f.date %}<div class="meta">{{ f.date }}</div>{% endif %}
+              {% if comp == 'all' %}
+                <div class="meta">
+                  <span class="badge {% if f.competition == 'Scottish Cup' %}cup{% endif %}">
+                    {{ f.competition }}
+                  </span>
+                </div>
+              {% endif %}
+            </div>
+            <div class="team-away">{{ f.away_team | short_name }}</div>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if not upcoming and not results %}
+    <p class="no-data">No fixtures found.</p>
+  {% endif %}
 {% endif %}
 {% endblock %}

@@ -266,6 +266,29 @@ def get_team_netminder_stats(db_name, season=CURRENT_SEASON):
         conn.close()
 
 
+def get_fixtures_by_ids(event_ids):
+    """Return {event_id: fixture dict} for a list of event IDs."""
+    if not event_ids:
+        return {}
+    conn = get_connection()
+    try:
+        placeholders = ','.join('?' * len(event_ids))
+        rows = conn.execute(
+            f"""
+            SELECT f.event_id, f.date, f.status, f.home_score, f.away_score,
+                   ht.name AS home_team, at.name AS away_team
+            FROM fixtures f
+            JOIN teams ht ON ht.id = f.home_team_id
+            JOIN teams at ON at.id = f.away_team_id
+            WHERE f.event_id IN ({placeholders})
+            """,
+            event_ids,
+        ).fetchall()
+        return {r['event_id']: dict(r) for r in rows}
+    finally:
+        conn.close()
+
+
 def get_event_detail(event_id):
     conn = get_connection()
     try:

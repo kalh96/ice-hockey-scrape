@@ -10,7 +10,7 @@ from flask import Flask, abort, render_template, request
 
 import db_queries
 from config import (
-    ARTICLES_DIR, COMPETITIONS, CURRENT_SEASON, SEASONS,
+    ARTICLES_DIR, COMPETITIONS, CUP_BRACKET, CURRENT_SEASON, SEASONS,
     STATIC_VERSION, TEAM_BY_SLUG, TEAM_DISPLAY,
 )
 
@@ -44,6 +44,56 @@ def team_slug_filter(db_name):
 def team_logo_filter(db_name):
     """DB team name → logo filename (e.g. 'Caps' → 'edinburgh-capitals.png')."""
     return TEAM_DISPLAY.get(db_name, {}).get("logo", "")
+
+
+# ---------------------------------------------------------------------------
+# Cup bracket builder
+# ---------------------------------------------------------------------------
+
+def _build_cup_bracket(fixtures_by_id):
+    """Build a renderable bracket structure from a {event_id: fixture} lookup."""
+    def goals_for(team, leg):
+        if leg['home_team'] == team:
+            return leg['home_score'] or 0
+        if leg['away_team'] == team:
+            return leg['away_score'] or 0
+        return 0
+
+    rounds = []
+    for round_def in CUP_BRACKET:
+        matchups = []
+        for leg_ids in round_def['matchups']:
+            legs = [fixtures_by_id[eid] for eid in leg_ids if eid in fixtures_by_id]
+            if not legs:
+                continue
+            leg1 = legs[0]
+            team1 = leg1['home_team']
+            team2 = leg1['away_team']
+            if len(legs) >= 2:
+                t1_agg = sum(goals_for(team1, l) for l in legs)
+                t2_agg = sum(goals_for(team2, l) for l in legs)
+                winner = team1 if t1_agg > t2_agg else (team2 if t2_agg > t1_agg else None)
+                matchups.append({
+                    'team1': team1, 'team2': team2,
+                    't1_agg': t1_agg, 't2_agg': t2_agg,
+                    'winner': winner, 'legs': legs, 'status': 'final',
+                })
+            else:
+                t1_score = leg1['home_score']
+                t2_score = leg1['away_score']
+                if leg1['status'] == 'final':
+                    winner = team1 if (t1_score or 0) > (t2_score or 0) else (
+                             team2 if (t2_score or 0) > (t1_score or 0) else None)
+                else:
+                    t1_score = t2_score = winner = None
+                matchups.append({
+                    'team1': team1, 'team2': team2,
+                    't1_agg': t1_score, 't2_agg': t2_score,
+                    'winner': winner, 'legs': legs, 'status': leg1['status'],
+                    'date': leg1.get('date'),
+                })
+        rounds.append({'name': round_def['name'], 'matchups': matchups})
+    return rounds
 
 
 # ---------------------------------------------------------------------------
@@ -208,6 +258,12 @@ def fixtures():
     all_fixtures = db_queries.get_all_fixtures(comp, season=season)
     upcoming = [f for f in all_fixtures if f["status"] == "scheduled"]
     results = [f for f in all_fixtures if f["status"] == "final"]
+
+    bracket = None
+    if comp == "Scottish Cup" and season == CURRENT_SEASON:
+        all_ids = [eid for rd in CUP_BRACKET for leg in rd["matchups"] for eid in leg]
+        bracket = _build_cup_bracket(db_queries.get_fixtures_by_ids(all_ids))
+
     return render_template(
         "fixtures.html",
         comp=comp,
@@ -216,6 +272,7 @@ def fixtures():
         seasons=SEASONS,
         upcoming=upcoming,
         results=results,
+        bracket=bracket,
     )
 
 
