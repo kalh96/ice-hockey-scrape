@@ -98,10 +98,10 @@ CUP_BRACKET = [
     {
         "name": "Quarter-Finals",
         "matchups": [
-            [17419, 17437],            # Wild vs Caps
-            [17429, 17448],            # Kilmarnock vs Lynx
-            [17442, 17471],            # Kestrels vs Rockets
-            [1932643317, 1221019340],  # Warriors vs Pirates
+            [17419, 17437],            # Wild vs Caps        → feeds SF1
+            [17442, 17471],            # Kestrels vs Rockets → feeds SF1
+            [17429, 17448],            # Kilmarnock vs Lynx  → feeds SF2
+            [1932643317, 1221019340],  # Warriors vs Pirates → feeds SF2
         ],
     },
     {
