@@ -201,8 +201,8 @@ def upsert_fixture(
         ON CONFLICT(event_id) DO UPDATE SET
             competition_id = excluded.competition_id,
             date           = COALESCE(excluded.date, fixtures.date),
-            home_team_id   = excluded.home_team_id,
-            away_team_id   = excluded.away_team_id,
+            home_team_id   = CASE WHEN excluded.home_team_id = 7 THEN fixtures.home_team_id ELSE excluded.home_team_id END,
+            away_team_id   = CASE WHEN excluded.away_team_id = 7 THEN fixtures.away_team_id ELSE excluded.away_team_id END,
             home_score     = excluded.home_score,
             away_score     = excluded.away_score,
             status         = excluded.status,

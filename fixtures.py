@@ -101,6 +101,11 @@ def parse_fixtures_page(soup: BeautifulSoup) -> list[dict]:
         home_name, home_slug, home_score_str = _team_info(team_els[0])
         away_name, away_slug, away_score_str = _team_info(team_els[1])
 
+        # Skip placeholder fixtures where teams are not yet announced
+        if not home_slug and not away_slug:
+            logger.debug("Skipping blank fixture %s — teams not yet announced", href)
+            continue
+
         if home_score_str is not None and away_score_str is not None:
             try:
                 home_score = int(home_score_str)
