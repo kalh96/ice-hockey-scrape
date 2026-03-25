@@ -26,11 +26,11 @@
 {% if bracket %}
   <h2 class="section-title">2025–26 Scottish Cup</h2>
   <div class="bracket">
-    {% for round in bracket %}
+    {% for rnd in bracket %}
       <div class="bracket-round">
-        <div class="bracket-round-name">{{ round.name }}</div>
+        <div class="bracket-round-name">{{ rnd.name }}</div>
         <div class="bracket-slots">
-          {% for m in round.matchups %}
+          {% for m in rnd.matchups %}
             <div class="bracket-slot">
               <div class="bracket-match">
 
