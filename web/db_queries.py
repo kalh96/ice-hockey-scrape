@@ -151,6 +151,121 @@ def get_netminder_stats(comp_name="SNL", season=CURRENT_SEASON):
         conn.close()
 
 
+def get_team_recent_results(db_name, season=CURRENT_SEASON, limit=5):
+    conn = get_connection()
+    try:
+        rows = conn.execute(
+            """
+            SELECT f.event_id, f.date, f.home_score, f.away_score,
+                   ht.name AS home_team, at.name AS away_team,
+                   c.name AS competition
+            FROM fixtures f
+            JOIN teams ht ON ht.id = f.home_team_id
+            JOIN teams at ON at.id = f.away_team_id
+            JOIN competitions c ON c.id = f.competition_id
+            WHERE f.status = 'final'
+              AND f.season = ?
+              AND (ht.name = ? OR at.name = ?)
+            ORDER BY COALESCE(f.date, '0') DESC, f.event_id DESC
+            LIMIT ?
+            """,
+            (season, db_name, db_name, limit),
+        ).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def get_team_upcoming_fixtures(db_name, season=CURRENT_SEASON, limit=5):
+    conn = get_connection()
+    try:
+        rows = conn.execute(
+            """
+            SELECT f.event_id, f.date,
+                   ht.name AS home_team, at.name AS away_team,
+                   c.name AS competition
+            FROM fixtures f
+            JOIN teams ht ON ht.id = f.home_team_id
+            JOIN teams at ON at.id = f.away_team_id
+            JOIN competitions c ON c.id = f.competition_id
+            WHERE f.status = 'scheduled'
+              AND f.season = ?
+              AND (ht.name = ? OR at.name = ?)
+            ORDER BY COALESCE(f.date, 'z') ASC, f.event_id ASC
+            LIMIT ?
+            """,
+            (season, db_name, db_name, limit),
+        ).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def get_team_standings_row(db_name, comp_name="SNL", season=CURRENT_SEASON):
+    conn = get_connection()
+    try:
+        row = conn.execute(
+            """
+            SELECT t.name, s.pos, s.gp, s.wins, s.losses, s.otl,
+                   s.gf, s.ga, s.goal_diff, s.pts
+            FROM team_season_stats s
+            JOIN teams t ON t.id = s.team_id
+            JOIN competitions c ON c.id = s.competition_id
+            WHERE t.name = ? AND c.name = ? AND s.season = ?
+            LIMIT 1
+            """,
+            (db_name, comp_name, season),
+        ).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def get_team_skater_stats(db_name, season=CURRENT_SEASON):
+    conn = get_connection()
+    try:
+        rows = conn.execute(
+            """
+            SELECT p.name AS player_name,
+                   s.position, s.gp, s.goals, s.assists, s.total_points, s.pim,
+                   c.name AS competition
+            FROM season_skater_stats s
+            JOIN players p ON p.id = s.player_id
+            JOIN teams t ON t.id = s.team_id
+            JOIN competitions c ON c.id = s.competition_id
+            WHERE t.name = ? AND s.season = ?
+            ORDER BY c.name, s.total_points DESC, s.goals DESC
+            """,
+            (db_name, season),
+        ).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def get_team_netminder_stats(db_name, season=CURRENT_SEASON):
+    conn = get_connection()
+    try:
+        rows = conn.execute(
+            """
+            SELECT p.name AS player_name,
+                   s.gp, s.shots_against, s.saves, s.goals_against,
+                   s.save_pct, s.gaa, s.toi,
+                   c.name AS competition
+            FROM season_netminder_stats s
+            JOIN players p ON p.id = s.player_id
+            JOIN teams t ON t.id = s.team_id
+            JOIN competitions c ON c.id = s.competition_id
+            WHERE t.name = ? AND s.season = ?
+            ORDER BY s.save_pct DESC
+            """,
+            (db_name, season),
+        ).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
 def get_event_detail(event_id):
     conn = get_connection()
     try:

@@ -48,7 +48,7 @@
           <tr>
             <td class="num text-muted">{{ loop.index }}</td>
             <td>{{ s.player_name }}</td>
-            <td>{{ s.team_name }}</td>
+            <td><a href="{{ url_for('team_detail', slug=s.team_name|team_slug) }}" class="team-name-link">{{ s.team_name | short_name }}</a></td>
             <td>{{ s.position or '–' }}</td>
             <td class="num">{{ s.gp }}</td>
             <td class="num">{{ s.goals }}</td>

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Teams – Scottish Ice Hockey{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Teams</h1>
+
+<div class="team-grid">
+  {% for t in teams %}
+    <a href="{{ url_for('team_detail', slug=t.slug) }}" class="team-card">
+      <div class="team-card-logo">
+        {% if t.logo %}
+          <img src="{{ url_for('static', filename='img/teams/' + t.logo) }}"
+               alt="{{ t.full }}"
+               class="team-logo-lg"
+               onerror="this.style.display='none'">
+        {% endif %}
+      </div>
+      <div class="team-card-info">
+        <div class="team-card-name">{{ t.full }}</div>
+        {% if t.pos is not none %}
+          <div class="team-card-meta">
+            <span class="team-pos-badge">{{ t.pos }}</span>
+            {% if t.pts is not none %}<span>{{ t.pts }} pts</span>{% endif %}
+            {% if t.gp is not none %}<span class="text-muted">{{ t.gp }} GP</span>{% endif %}
+          </div>
+        {% endif %}
+      </div>
+    </a>
+  {% endfor %}
+</div>
+{% endblock %}

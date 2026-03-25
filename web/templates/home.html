@@ -18,12 +18,12 @@
           <a href="{{ url_for('event_detail', event_id=f.event_id) }}" class="result-card-link">
             <div class="result-card">
               <div>
-                <div class="team-home">{{ f.home_team }}</div>
+                <div class="team-home">{{ f.home_team | short_name }}</div>
                 {% if f.date %}<div class="meta">{{ f.date }}</div>{% endif %}
               </div>
               <div class="score">{{ f.home_score }} – {{ f.away_score }}</div>
               <div>
-                <div class="team-away">{{ f.away_team }}</div>
+                <div class="team-away">{{ f.away_team | short_name }}</div>
                 <div class="meta">
                   <span class="badge {% if f.competition == 'Scottish Cup' %}cup{% endif %}">
                     {{ f.competition }}
@@ -46,10 +46,10 @@
       <div class="result-list">
         {% for f in upcoming %}
           <div class="result-card">
-            <div class="team-home">{{ f.home_team }}</div>
+            <div class="team-home">{{ f.home_team | short_name }}</div>
             <div class="score upcoming-score">vs</div>
             <div>
-              <div class="team-away">{{ f.away_team }}</div>
+              <div class="team-away">{{ f.away_team | short_name }}</div>
               {% if f.date %}<div class="meta">{{ f.date }}</div>{% endif %}
             </div>
           </div>
@@ -77,7 +77,13 @@
             {% for t in standings %}
               <tr>
                 <td>{{ t.pos }}</td>
-                <td>{{ t.name }}</td>
+                <td>
+                  <a href="{{ url_for('team_detail', slug=t.name|team_slug) }}" class="team-name-link">
+                    <img src="{{ url_for('static', filename='img/teams/' + (t.name|team_logo)) }}"
+                         alt="" class="team-logo-sm" onerror="this.style.display='none'">
+                    {{ t.name | full_name }}
+                  </a>
+                </td>
                 <td class="num">{{ t.gp }}</td>
                 <td class="num">{{ t.wins }}</td>
                 <td class="num">{{ t.losses }}</td>

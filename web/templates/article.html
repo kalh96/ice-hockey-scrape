@@ -7,6 +7,18 @@
   <p class="back-link"><a href="{{ url_for('articles_list') }}">&larr; All articles</a></p>
   <h1>{{ meta.title }}</h1>
   {% if meta.date %}<p class="article-meta text-muted">{{ meta.date }}</p>{% endif %}
+  {% if meta.teams %}
+    <div class="article-teams">
+      {% for team_full in meta.teams %}
+        {% set db_name = team_display | selectattr('value.full', 'eq', team_full) | first | default(None) %}
+        {% for name, info in team_display.items() %}
+          {% if info.full == team_full %}
+            <a href="{{ url_for('team_detail', slug=info.slug) }}" class="badge">{{ team_full }}</a>
+          {% endif %}
+        {% endfor %}
+      {% endfor %}
+    </div>
+  {% endif %}
   <hr class="article-divider">
   {{ body | safe }}
 </article>

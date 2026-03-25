@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+{% block title %}{{ info.full }} – Scottish Ice Hockey{% endblock %}
+{% block meta_description %}Stats, fixtures and articles for {{ info.full }}.{% endblock %}
+
+{% block content %}
+
+<!-- Team header -->
+<div class="team-header">
+  <div class="team-header-logo">
+    <img src="{{ url_for('static', filename='img/teams/' + info.logo) }}"
+         alt="{{ info.full }}"
+         class="team-logo-xl"
+         onerror="this.style.display='none'">
+  </div>
+  <div class="team-header-info">
+    <h1 class="team-header-name">{{ info.full }}</h1>
+    <div class="text-muted">{{ season }} Season</div>
+  </div>
+</div>
+
+<!-- Season summary bar -->
+{% if standing %}
+<div class="team-stats-bar">
+  <div class="team-stat-item">
+    <div class="team-stat-value">{{ standing.pos }}</div>
+    <div class="team-stat-label">Position</div>
+  </div>
+  <div class="team-stat-item">
+    <div class="team-stat-value">{{ standing.gp }}</div>
+    <div class="team-stat-label">GP</div>
+  </div>
+  <div class="team-stat-item">
+    <div class="team-stat-value">{{ standing.wins }}</div>
+    <div class="team-stat-label">W</div>
+  </div>
+  <div class="team-stat-item">
+    <div class="team-stat-value">{{ standing.losses }}</div>
+    <div class="team-stat-label">L</div>
+  </div>
+  {% if standing.otl is not none %}
+  <div class="team-stat-item">
+    <div class="team-stat-value">{{ standing.otl }}</div>
+    <div class="team-stat-label">OTL</div>
+  </div>
+  {% endif %}
+  <div class="team-stat-item">
+    <div class="team-stat-value">{{ standing.gf }}</div>
+    <div class="team-stat-label">GF</div>
+  </div>
+  <div class="team-stat-item">
+    <div class="team-stat-value">{{ standing.ga }}</div>
+    <div class="team-stat-label">GA</div>
+  </div>
+  <div class="team-stat-item highlight">
+    <div class="team-stat-value">{{ standing.pts }}</div>
+    <div class="team-stat-label">PTS</div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Recent results & upcoming -->
+<div class="home-grid mt-2">
+  <div>
+    <h2 class="section-title">Recent Results</h2>
+    {% if recent %}
+      <div class="result-list">
+        {% for f in recent %}
+          <a href="{{ url_for('event_detail', event_id=f.event_id) }}" class="result-card-link">
+            <div class="result-card">
+              <div>
+                <div class="team-home {% if f.home_team == db_name %}team-highlight{% endif %}">
+                  {{ f.home_team | short_name }}
+                </div>
+                {% if f.date %}<div class="meta">{{ f.date }}</div>{% endif %}
+              </div>
+              <div class="score">{{ f.home_score }} – {{ f.away_score }}</div>
+              <div>
+                <div class="team-away {% if f.away_team == db_name %}team-highlight{% endif %}">
+                  {{ f.away_team | short_name }}
+                </div>
+                <div class="meta">
+                  <span class="badge {% if f.competition == 'Scottish Cup' %}cup{% endif %}">
+                    {{ f.competition }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="no-data">No results yet this season.</p>
+    {% endif %}
+  </div>
+
+  <div>
+    <h2 class="section-title">Upcoming Fixtures</h2>
+    {% if upcoming %}
+      <div class="result-list">
+        {% for f in upcoming %}
+          <div class="result-card">
+            <div class="team-home {% if f.home_team == db_name %}team-highlight{% endif %}">
+              {{ f.home_team | short_name }}
+            </div>
+            <div>
+              <div class="score upcoming-score">vs</div>
+              {% if f.date %}<div class="meta">{{ f.date }}</div>{% endif %}
+            </div>
+            <div class="team-away {% if f.away_team == db_name %}team-highlight{% endif %}">
+              {{ f.away_team | short_name }}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="no-data">No upcoming fixtures.</p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Skater stats -->
+{% if skaters %}
+  {% set snl_skaters = skaters | selectattr('competition', 'eq', 'SNL') | list %}
+  {% set cup_skaters = skaters | selectattr('competition', 'eq', 'Scottish Cup') | list %}
+
+  <h2 class="section-title mt-2">Skater Statistics</h2>
+
+  {% for group, rows in [('SNL', snl_skaters), ('Scottish Cup', cup_skaters)] %}
+    {% if rows %}
+      {% if snl_skaters and cup_skaters %}
+        <p class="text-muted mb-1"><strong>{{ group }}</strong></p>
+      {% endif %}
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Player</th>
+              <th>Pos</th>
+              <th class="num">GP</th>
+              <th class="num">G</th>
+              <th class="num">A</th>
+              <th class="num">PTS</th>
+              <th class="num">PIM</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in rows %}
+              <tr>
+                <td>{{ s.player_name }}</td>
+                <td>{{ s.position or '–' }}</td>
+                <td class="num">{{ s.gp }}</td>
+                <td class="num">{{ s.goals }}</td>
+                <td class="num">{{ s.assists }}</td>
+                <td class="num"><strong>{{ s.total_points }}</strong></td>
+                <td class="num">{{ s.pim }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
+<!-- Netminder stats -->
+{% if netminders %}
+  <h2 class="section-title mt-2">Netminder Statistics</h2>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Netminder</th>
+          <th class="num">GP</th>
+          <th class="num">SA</th>
+          <th class="num">SV</th>
+          <th class="num">GA</th>
+          <th class="num">SV%</th>
+          <th class="num">GAA</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for n in netminders %}
+          <tr>
+            <td>{{ n.player_name }}</td>
+            <td class="num">{{ n.gp }}</td>
+            <td class="num">{{ n.shots_against if n.shots_against is not none else '–' }}</td>
+            <td class="num">{{ n.saves if n.saves is not none else '–' }}</td>
+            <td class="num">{{ n.goals_against if n.goals_against is not none else '–' }}</td>
+            <td class="num">{{ '%.3f'|format(n.save_pct) if n.save_pct is not none else '–' }}</td>
+            <td class="num">{{ '%.2f'|format(n.gaa) if n.gaa is not none else '–' }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endif %}
+
+<!-- Related articles -->
+{% if articles %}
+  <h2 class="section-title mt-2">Articles</h2>
+  <div class="article-list">
+    {% for a in articles %}
+      <a href="{{ url_for('article_detail', slug=a.slug) }}" class="article-card">
+        <h3>{{ a.title }}</h3>
+        {% if a.date %}<div class="date">{{ a.date }}</div>{% endif %}
+        {% if a.description %}<p>{{ a.description }}</p>{% endif %}
+      </a>
+    {% endfor %}
+  </div>
+{% endif %}
+
+{% endblock %}
