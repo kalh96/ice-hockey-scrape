@@ -1,0 +1,213 @@
+"""Flask web application for Scottish Ice Hockey stats and articles."""
+
+import os
+from datetime import date
+from pathlib import Path
+
+import frontmatter
+import markdown2
+from flask import Flask, abort, render_template, request
+
+import db_queries
+from config import ARTICLES_DIR, COMPETITIONS
+
+app = Flask(__name__)
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-secret-change-in-prod")
+
+
+# ---------------------------------------------------------------------------
+# Article helpers
+# ---------------------------------------------------------------------------
+
+def _load_articles():
+    """Return list of article metadata dicts, sorted newest first."""
+    articles = []
+    for path in ARTICLES_DIR.glob("*.md"):
+        post = frontmatter.load(str(path))
+        slug = path.stem
+        articles.append(
+            {
+                "slug": slug,
+                "title": post.get("title", slug),
+                "date": post.get("date", ""),
+                "description": post.get("description", ""),
+            }
+        )
+    articles.sort(key=lambda a: str(a["date"]), reverse=True)
+    return articles
+
+
+def _load_article(slug):
+    """Return (metadata, html_body) for a single article slug, or None."""
+    path = ARTICLES_DIR / f"{slug}.md"
+    if not path.exists():
+        return None
+    post = frontmatter.load(str(path))
+    html = markdown2.markdown(
+        post.content,
+        extras=["fenced-code-blocks", "tables", "header-ids", "strike"],
+    )
+    meta = {
+        "slug": slug,
+        "title": post.get("title", slug),
+        "date": post.get("date", ""),
+        "description": post.get("description", ""),
+    }
+    return meta, html
+
+
+# ---------------------------------------------------------------------------
+# Context processor
+# ---------------------------------------------------------------------------
+
+@app.context_processor
+def inject_globals():
+    return {"current_year": date.today().year}
+
+
+# ---------------------------------------------------------------------------
+# Routes
+# ---------------------------------------------------------------------------
+
+@app.route("/")
+def home():
+    recent = db_queries.get_recent_results("SNL", limit=5)
+    upcoming = db_queries.get_upcoming_fixtures("SNL", limit=3)
+    standings = db_queries.get_standings("SNL")
+    articles = _load_articles()[:3]
+    return render_template(
+        "home.html",
+        recent=recent,
+        upcoming=upcoming,
+        standings=standings,
+        articles=articles,
+    )
+
+
+@app.route("/articles/")
+def articles_list():
+    articles = _load_articles()
+    return render_template("articles_list.html", articles=articles)
+
+
+@app.route("/articles/<slug>/")
+def article_detail(slug):
+    result = _load_article(slug)
+    if result is None:
+        abort(404)
+    meta, body = result
+    return render_template("article.html", meta=meta, body=body)
+
+
+@app.route("/statistics/")
+def statistics():
+    comp = request.args.get("comp", "SNL")
+    if comp not in COMPETITIONS:
+        comp = "SNL"
+    standings = db_queries.get_standings(comp) if comp == "SNL" else []
+    top_skaters = db_queries.get_skater_stats(comp)[:5]
+    top_netminders = db_queries.get_netminder_stats(comp)[:5]
+    return render_template(
+        "stats.html",
+        comp=comp,
+        competitions=COMPETITIONS,
+        standings=standings,
+        top_skaters=top_skaters,
+        top_netminders=top_netminders,
+    )
+
+
+@app.route("/statistics/skaters/")
+def stats_skaters():
+    comp = request.args.get("comp", "SNL")
+    if comp not in COMPETITIONS:
+        comp = "SNL"
+    skaters = db_queries.get_skater_stats(comp)
+    return render_template(
+        "stats_skaters.html",
+        comp=comp,
+        competitions=COMPETITIONS,
+        skaters=skaters,
+    )
+
+
+@app.route("/statistics/netminders/")
+def stats_netminders():
+    comp = request.args.get("comp", "SNL")
+    if comp not in COMPETITIONS:
+        comp = "SNL"
+    netminders = db_queries.get_netminder_stats(comp)
+    return render_template(
+        "stats_netminders.html",
+        comp=comp,
+        competitions=COMPETITIONS,
+        netminders=netminders,
+    )
+
+
+@app.route("/fixtures/")
+def fixtures():
+    comp = request.args.get("comp", "all")
+    all_fixtures = db_queries.get_all_fixtures(comp)
+    upcoming = [f for f in all_fixtures if f["status"] == "scheduled"]
+    results = [f for f in all_fixtures if f["status"] == "final"]
+    return render_template(
+        "fixtures.html",
+        comp=comp,
+        competitions=["all"] + COMPETITIONS,
+        upcoming=upcoming,
+        results=results,
+    )
+
+
+@app.route("/fixtures/<int:event_id>/")
+def event_detail(event_id):
+    data = db_queries.get_event_detail(event_id)
+    if data is None:
+        abort(404)
+    skaters = [p for p in data["player_stats"] if p["position"] != "GK"]
+    goalkeepers = [p for p in data["player_stats"] if p["position"] == "GK"]
+    return render_template(
+        "event_detail.html",
+        fixture=data["fixture"],
+        period_scores=data["period_scores"],
+        skaters=skaters,
+        goalkeepers=goalkeepers,
+    )
+
+
+@app.route("/about/")
+def about():
+    return render_template("about.html")
+
+
+@app.route("/terms/")
+def terms():
+    return render_template("terms.html")
+
+
+@app.route("/privacy/")
+def privacy():
+    return render_template("privacy.html")
+
+
+# ---------------------------------------------------------------------------
+# Error handlers
+# ---------------------------------------------------------------------------
+
+@app.errorhandler(404)
+def not_found(e):
+    return render_template("404.html"), 404
+
+
+@app.errorhandler(500)
+def server_error(e):
+    return render_template("500.html"), 500
+
+
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
+
+if __name__ == "__main__":
+    app.run(debug=True)

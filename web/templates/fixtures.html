@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Fixtures & Results – Scottish Ice Hockey{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Fixtures &amp; Results</h1>
+
+<div class="comp-tabs">
+  {% for c in competitions %}
+    <a href="{{ url_for('fixtures', comp=c) }}"
+       class="comp-tab {{ 'active' if c == comp else '' }}">
+      {{ 'All' if c == 'all' else c }}
+    </a>
+  {% endfor %}
+</div>
+
+{% if upcoming %}
+  <h2 class="section-title">Upcoming</h2>
+  <div class="result-list">
+    {% for f in upcoming %}
+      <div class="result-card">
+        <div class="team-home">{{ f.home_team }}</div>
+        <div>
+          <div class="score upcoming-score">vs</div>
+          {% if f.date %}<div class="meta">{{ f.date }}</div>{% endif %}
+          {% if comp == 'all' %}
+            <div class="meta">
+              <span class="badge {% if f.competition == 'Scottish Cup' %}cup{% endif %}">
+                {{ f.competition }}
+              </span>
+            </div>
+          {% endif %}
+        </div>
+        <div class="team-away">{{ f.away_team }}</div>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+{% if results %}
+  <h2 class="section-title mt-2">Results</h2>
+  <div class="result-list">
+    {% for f in results %}
+      <a href="{{ url_for('event_detail', event_id=f.event_id) }}" class="result-card-link">
+        <div class="result-card">
+          <div>
+            <div class="team-home">{{ f.home_team }}</div>
+            {% if f.date %}<div class="meta">{{ f.date }}</div>{% endif %}
+          </div>
+          <div>
+            <div class="score">{{ f.home_score }} – {{ f.away_score }}</div>
+            {% if comp == 'all' %}
+              <div class="meta" style="text-align:center;">
+                <span class="badge {% if f.competition == 'Scottish Cup' %}cup{% endif %}">
+                  {{ f.competition }}
+                </span>
+              </div>
+            {% endif %}
+          </div>
+          <div class="team-away">{{ f.away_team }}</div>
+        </div>
+      </a>
+    {% endfor %}
+  </div>
+{% endif %}
+
+{% if not upcoming and not results %}
+  <p class="no-data">No fixtures found.</p>
+{% endif %}
+{% endblock %}

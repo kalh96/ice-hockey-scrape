@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Articles – Scottish Ice Hockey{% endblock %}
+{% block meta_description %}Articles and analysis covering Scottish ice hockey.{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Articles</h1>
+
+{% if articles %}
+  <div class="article-list">
+    {% for a in articles %}
+      <a href="{{ url_for('article_detail', slug=a.slug) }}" class="article-card">
+        <h3>{{ a.title }}</h3>
+        {% if a.date %}<div class="date">{{ a.date }}</div>{% endif %}
+        {% if a.description %}<p>{{ a.description }}</p>{% endif %}
+      </a>
+    {% endfor %}
+  </div>
+{% else %}
+  <p class="no-data">No articles published yet — check back soon.</p>
+{% endif %}
+{% endblock %}

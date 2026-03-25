@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}{{ fixture.home_team }} vs {{ fixture.away_team }} – Scottish Ice Hockey{% endblock %}
+
+{% block content %}
+<p class="back-link"><a href="{{ url_for('fixtures') }}">&larr; All fixtures</a></p>
+
+<div class="event-header">
+  <span class="badge {% if fixture.competition == 'Scottish Cup' %}cup{% endif %}">
+    {{ fixture.competition }}
+  </span>
+  {% if fixture.date %}<span class="text-muted">{{ fixture.date }}</span>{% endif %}
+</div>
+
+<div class="event-scoreline">
+  <div class="event-team">{{ fixture.home_team }}</div>
+  <div class="event-score">{{ fixture.home_score }} – {{ fixture.away_score }}</div>
+  <div class="event-team">{{ fixture.away_team }}</div>
+</div>
+
+{% if period_scores %}
+  <h2 class="section-title mt-2">Period Breakdown</h2>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Team</th>
+          <th class="num">P1</th>
+          <th class="num">P2</th>
+          <th class="num">P3</th>
+          <th class="num">PPG</th>
+          <th class="num">PPO</th>
+          <th class="num">Result</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in period_scores %}
+          <tr>
+            <td>{{ p.team_name }}</td>
+            <td class="num">{{ p.period_1 if p.period_1 is not none else '–' }}</td>
+            <td class="num">{{ p.period_2 if p.period_2 is not none else '–' }}</td>
+            <td class="num">{{ p.period_3 if p.period_3 is not none else '–' }}</td>
+            <td class="num">{{ p.ppg if p.ppg is not none else '–' }}</td>
+            <td class="num">{{ p.ppo if p.ppo is not none else '–' }}</td>
+            <td class="num">
+              {% if p.outcome == 'win' %}
+                <span class="outcome-win">W</span>
+              {% elif p.outcome == 'loss' %}
+                <span class="outcome-loss">L</span>
+              {% else %}
+                –
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endif %}
+
+{% if skaters %}
+  <h2 class="section-title mt-2">Skaters</h2>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Player</th>
+          <th>Team</th>
+          <th>Pos</th>
+          <th class="num">G</th>
+          <th class="num">A</th>
+          <th class="num">PTS</th>
+          <th class="num">PIM</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in skaters %}
+          <tr>
+            <td class="num text-muted">{{ p.jersey_number or '–' }}</td>
+            <td>{{ p.player_name }}</td>
+            <td>{{ p.team_name }}</td>
+            <td>{{ p.position or '–' }}</td>
+            <td class="num">{{ p.goals }}</td>
+            <td class="num">{{ p.assists }}</td>
+            <td class="num"><strong>{{ p.goals + p.assists }}</strong></td>
+            <td class="num">{{ p.pim }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endif %}
+
+{% if goalkeepers %}
+  <h2 class="section-title mt-2">Netminders</h2>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Netminder</th>
+          <th>Team</th>
+          <th class="num">SA</th>
+          <th class="num">SV</th>
+          <th class="num">GA</th>
+          <th class="num">TOI</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in goalkeepers %}
+          <tr>
+            <td class="num text-muted">{{ p.jersey_number or '–' }}</td>
+            <td>{{ p.player_name }}</td>
+            <td>{{ p.team_name }}</td>
+            <td class="num">{{ p.shots_against if p.shots_against is not none else '–' }}</td>
+            <td class="num">{{ p.saves if p.saves is not none else '–' }}</td>
+            <td class="num">{{ p.goals_against if p.goals_against is not none else '–' }}</td>
+            <td class="num">{{ p.toi or '–' }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endif %}
+
+{% if not period_scores and not skaters and not goalkeepers %}
+  <p class="no-data">Detailed stats not yet available for this match.</p>
+{% endif %}
+{% endblock %}

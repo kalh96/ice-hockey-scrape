@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Scottish Ice Hockey{% endblock %}
+
+{% block content %}
+<div class="hero">
+  <h1>Scottish Ice Hockey</h1>
+  <p>Articles, results and statistics covering the Scottish National League and Scottish Cup.</p>
+</div>
+
+<div class="home-grid">
+
+  <!-- Recent Results -->
+  <div>
+    <h2 class="section-title">Recent Results</h2>
+    {% if recent %}
+      <div class="result-list">
+        {% for f in recent %}
+          <a href="{{ url_for('event_detail', event_id=f.event_id) }}" class="result-card-link">
+            <div class="result-card">
+              <div>
+                <div class="team-home">{{ f.home_team }}</div>
+                {% if f.date %}<div class="meta">{{ f.date }}</div>{% endif %}
+              </div>
+              <div class="score">{{ f.home_score }} – {{ f.away_score }}</div>
+              <div>
+                <div class="team-away">{{ f.away_team }}</div>
+                <div class="meta">
+                  <span class="badge {% if f.competition == 'Scottish Cup' %}cup{% endif %}">
+                    {{ f.competition }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="no-data">No results available.</p>
+    {% endif %}
+  </div>
+
+  <!-- Upcoming Fixtures -->
+  <div>
+    <h2 class="section-title">Upcoming Fixtures</h2>
+    {% if upcoming %}
+      <div class="result-list">
+        {% for f in upcoming %}
+          <div class="result-card">
+            <div class="team-home">{{ f.home_team }}</div>
+            <div class="score upcoming-score">vs</div>
+            <div>
+              <div class="team-away">{{ f.away_team }}</div>
+              {% if f.date %}<div class="meta">{{ f.date }}</div>{% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="no-data">No upcoming fixtures.</p>
+    {% endif %}
+
+    <h2 class="section-title mt-2">SNL Standings</h2>
+    {% if standings %}
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Pos</th>
+              <th>Team</th>
+              <th class="num">GP</th>
+              <th class="num">W</th>
+              <th class="num">L</th>
+              <th class="num">PTS</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for t in standings %}
+              <tr>
+                <td>{{ t.pos }}</td>
+                <td>{{ t.name }}</td>
+                <td class="num">{{ t.gp }}</td>
+                <td class="num">{{ t.wins }}</td>
+                <td class="num">{{ t.losses }}</td>
+                <td class="num"><strong>{{ t.pts }}</strong></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <p class="mt-1"><a href="{{ url_for('statistics') }}">Full standings &amp; stats →</a></p>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- Latest Articles -->
+{% if articles %}
+<div class="mt-2">
+  <h2 class="section-title">Latest Articles</h2>
+  <div class="article-list">
+    {% for a in articles %}
+      <a href="{{ url_for('article_detail', slug=a.slug) }}" class="article-card">
+        <h3>{{ a.title }}</h3>
+        {% if a.date %}<div class="date">{{ a.date }}</div>{% endif %}
+        {% if a.description %}<p>{{ a.description }}</p>{% endif %}
+      </a>
+    {% endfor %}
+  </div>
+  <p class="mt-1"><a href="{{ url_for('articles_list') }}">All articles →</a></p>
+</div>
+{% endif %}
+{% endblock %}

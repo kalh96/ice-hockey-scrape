@@ -1,0 +1,4 @@
+flask>=3.0
+gunicorn>=22.0
+markdown2>=2.4
+python-frontmatter>=1.1

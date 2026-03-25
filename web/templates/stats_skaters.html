@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Skater Stats – Scottish Ice Hockey{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Skater Statistics</h1>
+
+<div class="comp-tabs">
+  {% for c in competitions %}
+    <a href="{{ url_for('stats_skaters', comp=c) }}"
+       class="comp-tab {{ 'active' if c == comp else '' }}">{{ c }}</a>
+  {% endfor %}
+</div>
+
+<div class="stats-nav">
+  <a href="{{ url_for('statistics', comp=comp) }}" class="stats-nav-link">Standings</a>
+  <a href="{{ url_for('stats_skaters', comp=comp) }}" class="stats-nav-link active">Skaters</a>
+  <a href="{{ url_for('stats_netminders', comp=comp) }}" class="stats-nav-link">Netminders</a>
+</div>
+
+{% if skaters %}
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Player</th>
+          <th>Team</th>
+          <th>Pos</th>
+          <th class="num">GP</th>
+          <th class="num">G</th>
+          <th class="num">A</th>
+          <th class="num">PTS</th>
+          <th class="num">PIM</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in skaters %}
+          <tr>
+            <td class="num text-muted">{{ loop.index }}</td>
+            <td>{{ s.player_name }}</td>
+            <td>{{ s.team_name }}</td>
+            <td>{{ s.position or '–' }}</td>
+            <td class="num">{{ s.gp }}</td>
+            <td class="num">{{ s.goals }}</td>
+            <td class="num">{{ s.assists }}</td>
+            <td class="num"><strong>{{ s.total_points }}</strong></td>
+            <td class="num">{{ s.pim }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <p class="no-data">No skater stats available for {{ comp }}.</p>
+{% endif %}
+{% endblock %}

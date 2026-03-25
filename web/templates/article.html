@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}{{ meta.title }} – Scottish Ice Hockey{% endblock %}
+{% block meta_description %}{{ meta.description }}{% endblock %}
+
+{% block content %}
+<article class="article-body">
+  <p class="back-link"><a href="{{ url_for('articles_list') }}">&larr; All articles</a></p>
+  <h1>{{ meta.title }}</h1>
+  {% if meta.date %}<p class="article-meta text-muted">{{ meta.date }}</p>{% endif %}
+  <hr class="article-divider">
+  {{ body | safe }}
+</article>
+{% endblock %}

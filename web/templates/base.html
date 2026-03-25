@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Scottish Ice Hockey{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}Articles and statistics covering Scottish ice hockey.{% endblock %}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<header>
+  <a class="site-title" href="{{ url_for('home') }}">
+    Scottish <span>Ice Hockey</span>
+  </a>
+  <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
+    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="3" y1="6" x2="21" y2="6"/>
+      <line x1="3" y1="12" x2="21" y2="12"/>
+      <line x1="3" y1="18" x2="21" y2="18"/>
+    </svg>
+  </button>
+  <nav id="mainNav">
+    <ul>
+      <li><a href="{{ url_for('home') }}"
+             class="{{ 'active' if request.endpoint == 'home' else '' }}">Home</a></li>
+      <li><a href="{{ url_for('articles_list') }}"
+             class="{{ 'active' if request.endpoint in ('articles_list', 'article_detail') else '' }}">Articles</a></li>
+      <li><a href="{{ url_for('statistics') }}"
+             class="{{ 'active' if request.endpoint in ('statistics', 'stats_skaters', 'stats_netminders') else '' }}">Statistics</a></li>
+      <li><a href="{{ url_for('fixtures') }}"
+             class="{{ 'active' if request.endpoint in ('fixtures', 'event_detail') else '' }}">Fixtures</a></li>
+      <li><a href="{{ url_for('about') }}"
+             class="{{ 'active' if request.endpoint == 'about' else '' }}">About</a></li>
+    </ul>
+  </nav>
+</header>
+
+<main>
+  {% block content %}{% endblock %}
+</main>
+
+<footer>
+  <div class="footer-links">
+    <a href="{{ url_for('terms') }}">Terms of Service</a>
+    <a href="{{ url_for('privacy') }}">Privacy Policy</a>
+  </div>
+  <p>&copy; {{ current_year }} Scottish Ice Hockey. Stats sourced from <a href="https://www.siha-uk.co.uk" target="_blank" rel="noopener">SIHA</a>.</p>
+</footer>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

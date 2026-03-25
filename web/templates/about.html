@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}About – Scottish Ice Hockey{% endblock %}
+
+{% block content %}
+<div class="article-body">
+  <h1>About</h1>
+  <p>
+    Welcome to Scottish Ice Hockey — an independent website dedicated to covering ice hockey
+    in Scotland, with a focus on the Scottish National League (SNL) and Scottish Cup.
+  </p>
+  <p>
+    This site publishes articles, match analysis, and live statistics drawn directly from the
+    Scottish Ice Hockey Association (SIHA). All stats are sourced from the
+    <a href="https://www.siha-uk.co.uk" target="_blank" rel="noopener">SIHA website</a>
+    and updated regularly throughout the season.
+  </p>
+
+  <h2>The Stats</h2>
+  <p>
+    Statistics are collected automatically from the SIHA website and stored in a local
+    database. This includes fixtures and results, player stats (goals, assists, penalties,
+    saves), team standings, and special-teams data.
+  </p>
+  <p>
+    While every effort is made to keep stats accurate and up to date, this site is unofficial
+    and the SIHA website should be treated as the authoritative source. Please refer to the
+    <a href="{{ url_for('terms') }}">Terms of Service</a> for more detail.
+  </p>
+
+  <h2>Contact</h2>
+  <p>
+    For queries or feedback, please reach out via the SIHA community channels.
+  </p>
+</div>
+{% endblock %}
