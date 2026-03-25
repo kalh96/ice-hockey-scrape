@@ -11,7 +11,7 @@ from flask import Flask, abort, render_template, request
 import db_queries
 from config import (
     ARTICLES_DIR, COMPETITIONS, CURRENT_SEASON, SEASONS,
-    TEAM_BY_SLUG, TEAM_DISPLAY,
+    STATIC_VERSION, TEAM_BY_SLUG, TEAM_DISPLAY,
 )
 
 app = Flask(__name__)
@@ -100,6 +100,7 @@ def inject_globals():
     return {
         "current_year": date.today().year,
         "team_display": TEAM_DISPLAY,
+        "static_version": STATIC_VERSION,
     }
 
 

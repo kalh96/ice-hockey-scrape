@@ -29,7 +29,7 @@
     {% for f in upcoming %}
       <div class="result-card">
         <div class="team-home">{{ f.home_team | short_name }}</div>
-        <div>
+        <div class="result-card-centre">
           <div class="score upcoming-score">vs</div>
           {% if f.date %}<div class="meta">{{ f.date }}</div>{% endif %}
           {% if comp == 'all' %}
@@ -52,14 +52,12 @@
     {% for f in results %}
       <a href="{{ url_for('event_detail', event_id=f.event_id) }}" class="result-card-link">
         <div class="result-card">
-          <div>
-            <div class="team-home">{{ f.home_team | short_name }}</div>
-            {% if f.date %}<div class="meta">{{ f.date }}</div>{% endif %}
-          </div>
-          <div>
+          <div class="team-home">{{ f.home_team | short_name }}</div>
+          <div class="result-card-centre">
             <div class="score">{{ f.home_score }} – {{ f.away_score }}</div>
+            {% if f.date %}<div class="meta">{{ f.date }}</div>{% endif %}
             {% if comp == 'all' %}
-              <div class="meta" style="text-align:center;">
+              <div class="meta">
                 <span class="badge {% if f.competition == 'Scottish Cup' %}cup{% endif %}">
                   {{ f.competition }}
                 </span>

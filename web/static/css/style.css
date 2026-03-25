@@ -133,7 +133,6 @@ nav a.active {
   white-space: nowrap;
 }
 
-.nav-dropdown:hover .dropdown-menu,
 .nav-dropdown.open .dropdown-menu {
   display: block;
 }
@@ -328,6 +327,10 @@ tbody tr:last-child td { border-bottom: none; }
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--text-muted);
+}
+
+.result-card-centre {
+  text-align: center;
 }
 
 .meta {

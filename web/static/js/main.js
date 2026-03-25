@@ -7,7 +7,7 @@ if (toggle && nav) {
     nav.classList.toggle('open');
   });
 
-  // Close nav when a non-dropdown link is clicked
+  // Close nav when a link is clicked (but not the Teams toggle on mobile)
   nav.querySelectorAll('a').forEach(link => {
     if (!link.closest('.nav-dropdown') || link.closest('.dropdown-menu')) {
       link.addEventListener('click', () => nav.classList.remove('open'));
@@ -15,15 +15,28 @@ if (toggle && nav) {
   });
 }
 
-// Teams dropdown: click-toggle on mobile, hover on desktop (CSS handles hover)
+// Teams dropdown
 document.querySelectorAll('.nav-dropdown').forEach(item => {
-  const topLink = item.querySelector(':scope > a');
-  topLink.addEventListener('click', e => {
-    // On narrow screens the dropdown is toggled by click
+  // Desktop: open/close on mouse hover
+  item.addEventListener('mouseenter', () => {
+    if (window.innerWidth > 768) item.classList.add('open');
+  });
+  item.addEventListener('mouseleave', () => {
+    if (window.innerWidth > 768) item.classList.remove('open');
+  });
+
+  // Mobile: tap the Teams link to toggle the submenu
+  item.querySelector(':scope > a').addEventListener('click', e => {
     if (window.innerWidth <= 768) {
       e.preventDefault();
       item.classList.toggle('open');
     }
-    // On desktop, clicking the top-level link navigates normally (href)
   });
+});
+
+// Close dropdown when clicking elsewhere on the page
+document.addEventListener('click', e => {
+  if (!e.target.closest('.nav-dropdown')) {
+    document.querySelectorAll('.nav-dropdown').forEach(item => item.classList.remove('open'));
+  }
 });

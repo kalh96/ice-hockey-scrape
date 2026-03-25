@@ -86,3 +86,7 @@ TEAM_DISPLAY = {
 
 # Reverse lookup: URL slug → DB team name
 TEAM_BY_SLUG = {v["slug"]: k for k, v in TEAM_DISPLAY.items()}
+
+# Bump this string whenever you push CSS/JS changes to force Cloudflare to
+# fetch the new file instead of serving a stale cached copy.
+STATIC_VERSION = "20260325-4"
