@@ -264,7 +264,7 @@ def team_detail(slug):
 
     recent   = db_queries.get_team_recent_results(db_name, season=CURRENT_SEASON, limit=5)
     upcoming = db_queries.get_team_upcoming_fixtures(db_name, season=CURRENT_SEASON, limit=5)
-    standing = db_queries.get_team_standings_row(db_name, season=CURRENT_SEASON)
+    standings = db_queries.get_standings("SNL", season=CURRENT_SEASON)
     skaters  = db_queries.get_team_skater_stats(db_name, season=CURRENT_SEASON)
     netminders = db_queries.get_team_netminder_stats(db_name, season=CURRENT_SEASON)
 
@@ -275,7 +275,7 @@ def team_detail(slug):
         "team_detail.html",
         db_name=db_name,
         info=info,
-        standing=standing,
+        standings=standings,
         recent=recent,
         upcoming=upcoming,
         skaters=skaters,

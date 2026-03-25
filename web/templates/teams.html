@@ -17,13 +17,6 @@
       </div>
       <div class="team-card-info">
         <div class="team-card-name">{{ t.full }}</div>
-        {% if t.pos is not none %}
-          <div class="team-card-meta">
-            <span class="team-pos-badge">{{ t.pos }}</span>
-            {% if t.pts is not none %}<span>{{ t.pts }} pts</span>{% endif %}
-            {% if t.gp is not none %}<span class="text-muted">{{ t.gp }} GP</span>{% endif %}
-          </div>
-        {% endif %}
       </div>
     </a>
   {% endfor %}

@@ -30,8 +30,15 @@
              class="{{ 'active' if request.endpoint in ('statistics', 'stats_skaters', 'stats_netminders') else '' }}">Statistics</a></li>
       <li><a href="{{ url_for('fixtures') }}"
              class="{{ 'active' if request.endpoint in ('fixtures', 'event_detail') else '' }}">Fixtures</a></li>
-      <li><a href="{{ url_for('teams_list') }}"
-             class="{{ 'active' if request.endpoint in ('teams_list', 'team_detail') else '' }}">Teams</a></li>
+      <li class="nav-dropdown">
+        <a href="{{ url_for('teams_list') }}"
+           class="{{ 'active' if request.endpoint in ('teams_list', 'team_detail') else '' }}">Teams</a>
+        <ul class="dropdown-menu">
+          {% for db_name, info in team_display.items() %}
+            <li><a href="{{ url_for('team_detail', slug=info.slug) }}">{{ info.full }}</a></li>
+          {% endfor %}
+        </ul>
+      </li>
       <li><a href="{{ url_for('about') }}"
              class="{{ 'active' if request.endpoint == 'about' else '' }}">About</a></li>
     </ul>
