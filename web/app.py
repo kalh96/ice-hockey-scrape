@@ -107,12 +107,20 @@ def _load_articles():
         post = frontmatter.load(str(path))
         slug = path.stem
         teams_raw = post.get("teams", [])
+        # Extract first paragraph for use as a preview snippet
+        first_para = ""
+        for block in post.content.strip().split("\n\n"):
+            block = block.strip()
+            if block and not block.startswith("#"):
+                first_para = markdown2.markdown(block)
+                break
         articles.append(
             {
                 "slug": slug,
                 "title": post.get("title", slug),
                 "date": post.get("date", ""),
                 "description": post.get("description", ""),
+                "preview": first_para,
                 "teams": teams_raw if isinstance(teams_raw, list) else [teams_raw],
             }
         )
@@ -163,7 +171,7 @@ def home():
     recent = db_queries.get_recent_results("SNL", season=CURRENT_SEASON, limit=5)
     upcoming = db_queries.get_upcoming_fixtures("SNL", season=CURRENT_SEASON, limit=3)
     standings = db_queries.get_standings("SNL", season=CURRENT_SEASON)
-    articles = _load_articles()[:3]
+    articles = _load_articles()[:4]
     return render_template(
         "home.html",
         recent=recent,

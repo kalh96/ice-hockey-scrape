@@ -7,9 +7,43 @@
   <p>Articles, results and statistics covering the Scottish National League and Scottish Cup.</p>
 </div>
 
-<div class="home-grid">
+<!-- Latest Articles -->
+{% if articles %}
+<div class="mt-2">
+  <h2 class="section-title">Latest Articles</h2>
 
-  <!-- Recent Results -->
+  {# First article: featured with first-paragraph preview #}
+  {% set a = articles[0] %}
+  <a href="{{ url_for('article_detail', slug=a.slug) }}" class="article-card article-card--featured">
+    <h3>{{ a.title }}</h3>
+    {% if a.date %}<div class="date">{{ a.date }}</div>{% endif %}
+    {% if a.preview %}
+      <div class="article-preview">{{ a.preview | safe }}</div>
+    {% elif a.description %}
+      <p>{{ a.description }}</p>
+    {% endif %}
+  </a>
+
+  {# Remaining articles as compact cards #}
+  {% if articles | length > 1 %}
+    <div class="article-list mt-1">
+      {% for a in articles[1:] %}
+        <a href="{{ url_for('article_detail', slug=a.slug) }}" class="article-card">
+          <h3>{{ a.title }}</h3>
+          {% if a.date %}<div class="date">{{ a.date }}</div>{% endif %}
+          {% if a.description %}<p>{{ a.description }}</p>{% endif %}
+        </a>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <p class="mt-1"><a href="{{ url_for('articles_list') }}">All articles →</a></p>
+</div>
+{% endif %}
+
+<!-- Results & Fixtures -->
+<div class="home-grid mt-2">
+
   <div>
     <h2 class="section-title">Recent Results</h2>
     {% if recent %}
@@ -35,7 +69,6 @@
     {% endif %}
   </div>
 
-  <!-- Upcoming Fixtures -->
   <div>
     <h2 class="section-title">Upcoming Fixtures</h2>
     {% if upcoming %}
@@ -52,61 +85,50 @@
     {% else %}
       <p class="no-data">No upcoming fixtures.</p>
     {% endif %}
-
-    <h2 class="section-title mt-2">SNL Standings</h2>
-    {% if standings %}
-      <div class="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>Pos</th>
-              <th>Team</th>
-              <th class="num">GP</th>
-              <th class="num">W</th>
-              <th class="num">L</th>
-              <th class="num">PTS</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for t in standings %}
-              <tr>
-                <td>{{ t.pos }}</td>
-                <td>
-                  <a href="{{ url_for('team_detail', slug=t.name|team_slug) }}" class="team-name-link">
-                    <img src="{{ url_for('static', filename='img/teams/' + (t.name|team_logo)) }}?v={{ static_version }}"
-                         alt="" class="team-logo-sm" onerror="this.style.display='none'">
-                    {{ t.name | full_name }}
-                  </a>
-                </td>
-                <td class="num">{{ t.gp }}</td>
-                <td class="num">{{ t.wins }}</td>
-                <td class="num">{{ t.losses }}</td>
-                <td class="num"><strong>{{ t.pts }}</strong></td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      <p class="mt-1"><a href="{{ url_for('statistics') }}">Full standings &amp; stats →</a></p>
-    {% endif %}
   </div>
 
 </div>
 
-<!-- Latest Articles -->
-{% if articles %}
+<!-- Standings -->
+{% if standings %}
 <div class="mt-2">
-  <h2 class="section-title">Latest Articles</h2>
-  <div class="article-list">
-    {% for a in articles %}
-      <a href="{{ url_for('article_detail', slug=a.slug) }}" class="article-card">
-        <h3>{{ a.title }}</h3>
-        {% if a.date %}<div class="date">{{ a.date }}</div>{% endif %}
-        {% if a.description %}<p>{{ a.description }}</p>{% endif %}
-      </a>
-    {% endfor %}
+  <h2 class="section-title">SNL Standings</h2>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Pos</th>
+          <th>Team</th>
+          <th class="num">GP</th>
+          <th class="num">W</th>
+          <th class="num">L</th>
+          <th class="num">OTL</th>
+          <th class="num">PTS</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in standings %}
+          <tr>
+            <td>{{ t.pos }}</td>
+            <td>
+              <a href="{{ url_for('team_detail', slug=t.name|team_slug) }}" class="team-name-link">
+                <img src="{{ url_for('static', filename='img/teams/' + (t.name|team_logo)) }}?v={{ static_version }}"
+                     alt="" class="team-logo-sm" onerror="this.style.display='none'">
+                {{ t.name | full_name }}
+              </a>
+            </td>
+            <td class="num">{{ t.gp }}</td>
+            <td class="num">{{ t.wins }}</td>
+            <td class="num">{{ t.losses }}</td>
+            <td class="num">{{ t.otl if t.otl is not none else '–' }}</td>
+            <td class="num"><strong>{{ t.pts }}</strong></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
-  <p class="mt-1"><a href="{{ url_for('articles_list') }}">All articles →</a></p>
+  <p class="mt-1"><a href="{{ url_for('statistics') }}">Full standings &amp; stats →</a></p>
 </div>
 {% endif %}
+
 {% endblock %}

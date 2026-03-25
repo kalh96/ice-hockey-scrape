@@ -515,6 +515,22 @@ tbody tr:last-child td { border-bottom: none; }
 
 .article-card p { font-size: 0.9rem; color: var(--text-muted); }
 
+.article-card--featured {
+  border-left: 4px solid var(--accent);
+  background: var(--bg-subtle);
+}
+
+.article-card--featured h3 { font-size: 1.25rem; }
+
+.article-preview {
+  margin-top: 0.6rem;
+  font-size: 0.95rem;
+  color: var(--text);
+  line-height: 1.65;
+}
+
+.article-preview p { margin: 0; }
+
 /* ============================================================
    Article body (rendered markdown)
    ============================================================ */

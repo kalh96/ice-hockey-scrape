@@ -85,23 +85,19 @@
       <div class="result-list">
         {% for f in recent %}
           <a href="{{ url_for('event_detail', event_id=f.event_id) }}" class="result-card-link">
-            <div class="result-card">
-              <div>
-                <div class="team-home {% if f.home_team == db_name %}team-highlight{% endif %}">
-                  {{ f.home_team | short_name }}
-                </div>
-                {% if f.date %}<div class="meta">{{ f.date }}</div>{% endif %}
+            <div class="result-card result-card--5col">
+              <div class="meta result-date">{{ f.date if f.date else '' }}</div>
+              <div class="team-home {% if f.home_team == db_name %}team-highlight{% endif %}">
+                {{ f.home_team | short_name }}
               </div>
               <div class="score">{{ f.home_score }} – {{ f.away_score }}</div>
-              <div>
-                <div class="team-away {% if f.away_team == db_name %}team-highlight{% endif %}">
-                  {{ f.away_team | short_name }}
-                </div>
-                <div class="meta">
-                  <span class="badge {% if f.competition == 'Scottish Cup' %}cup{% endif %}">
-                    {{ f.competition }}
-                  </span>
-                </div>
+              <div class="team-away {% if f.away_team == db_name %}team-highlight{% endif %}">
+                {{ f.away_team | short_name }}
+              </div>
+              <div class="result-comp">
+                <span class="badge {% if f.competition == 'Scottish Cup' %}cup{% endif %}">
+                  {{ f.competition }}
+                </span>
               </div>
             </div>
           </a>
@@ -117,17 +113,15 @@
     {% if upcoming %}
       <div class="result-list">
         {% for f in upcoming %}
-          <div class="result-card">
+          <div class="result-card result-card--4col">
             <div class="team-home {% if f.home_team == db_name %}team-highlight{% endif %}">
               {{ f.home_team | short_name }}
             </div>
-            <div>
-              <div class="score upcoming-score">vs</div>
-              {% if f.date %}<div class="meta">{{ f.date }}</div>{% endif %}
-            </div>
+            <div class="score upcoming-score">vs</div>
             <div class="team-away {% if f.away_team == db_name %}team-highlight{% endif %}">
               {{ f.away_team | short_name }}
             </div>
+            <div class="meta result-date">{{ f.date if f.date else '' }}</div>
           </div>
         {% endfor %}
       </div>
@@ -183,35 +177,46 @@
 
 <!-- Netminder stats -->
 {% if netminders %}
+  {% set snl_netminders = netminders | selectattr('competition', 'eq', 'SNL') | list %}
+  {% set cup_netminders = netminders | selectattr('competition', 'eq', 'Scottish Cup') | list %}
+
   <h2 class="section-title mt-2">Netminder Statistics</h2>
-  <div class="table-wrapper">
-    <table>
-      <thead>
-        <tr>
-          <th>Netminder</th>
-          <th class="num">GP</th>
-          <th class="num">SA</th>
-          <th class="num">SV</th>
-          <th class="num">GA</th>
-          <th class="num">SV%</th>
-          <th class="num">GAA</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for n in netminders %}
-          <tr>
-            <td>{{ n.player_name }}</td>
-            <td class="num">{{ n.gp }}</td>
-            <td class="num">{{ n.shots_against if n.shots_against is not none else '–' }}</td>
-            <td class="num">{{ n.saves if n.saves is not none else '–' }}</td>
-            <td class="num">{{ n.goals_against if n.goals_against is not none else '–' }}</td>
-            <td class="num">{{ '%.3f'|format(n.save_pct) if n.save_pct is not none else '–' }}</td>
-            <td class="num">{{ '%.2f'|format(n.gaa) if n.gaa is not none else '–' }}</td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+
+  {% for group, rows in [('SNL', snl_netminders), ('Scottish Cup', cup_netminders)] %}
+    {% if rows %}
+      {% if snl_netminders and cup_netminders %}
+        <p class="text-muted mb-1"><strong>{{ group }}</strong></p>
+      {% endif %}
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Netminder</th>
+              <th class="num">GP</th>
+              <th class="num">SA</th>
+              <th class="num">SV</th>
+              <th class="num">GA</th>
+              <th class="num">SV%</th>
+              <th class="num">GAA</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for n in rows %}
+              <tr>
+                <td>{{ n.player_name }}</td>
+                <td class="num">{{ n.gp }}</td>
+                <td class="num">{{ n.shots_against if n.shots_against is not none else '–' }}</td>
+                <td class="num">{{ n.saves if n.saves is not none else '–' }}</td>
+                <td class="num">{{ n.goals_against if n.goals_against is not none else '–' }}</td>
+                <td class="num">{{ '%.3f'|format(n.save_pct) if n.save_pct is not none else '–' }}</td>
+                <td class="num">{{ '%.2f'|format(n.gaa) if n.gaa is not none else '–' }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  {% endfor %}
 {% endif %}
 
 {% endblock %}
