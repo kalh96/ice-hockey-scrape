@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% block title %}Scottish Ice Hockey{% endblock %}
+{% block title %}Scottish Ice Hockey News{% endblock %}
 
 {% block content %}
 <div class="hero">
-  <h1>Scottish Ice Hockey</h1>
+  <h1>Scottish Ice Hockey News</h1>
   <p>Articles, results and statistics covering the Scottish National League and Scottish Cup.</p>
 </div>
 
@@ -16,19 +16,15 @@
       <div class="result-list">
         {% for f in recent %}
           <a href="{{ url_for('event_detail', event_id=f.event_id) }}" class="result-card-link">
-            <div class="result-card">
-              <div>
-                <div class="team-home">{{ f.home_team | short_name }}</div>
-                {% if f.date %}<div class="meta">{{ f.date }}</div>{% endif %}
-              </div>
+            <div class="result-card result-card--5col">
+              <div class="meta result-date">{{ f.date if f.date else '' }}</div>
+              <div class="team-home">{{ f.home_team | short_name }}</div>
               <div class="score">{{ f.home_score }} – {{ f.away_score }}</div>
-              <div>
-                <div class="team-away">{{ f.away_team | short_name }}</div>
-                <div class="meta">
-                  <span class="badge {% if f.competition == 'Scottish Cup' %}cup{% endif %}">
-                    {{ f.competition }}
-                  </span>
-                </div>
+              <div class="team-away">{{ f.away_team | short_name }}</div>
+              <div class="result-comp">
+                <span class="badge {% if f.competition == 'Scottish Cup' %}cup{% endif %}">
+                  {{ f.competition }}
+                </span>
               </div>
             </div>
           </a>
@@ -45,13 +41,11 @@
     {% if upcoming %}
       <div class="result-list">
         {% for f in upcoming %}
-          <div class="result-card">
+          <div class="result-card result-card--4col">
             <div class="team-home">{{ f.home_team | short_name }}</div>
             <div class="score upcoming-score">vs</div>
-            <div>
-              <div class="team-away">{{ f.away_team | short_name }}</div>
-              {% if f.date %}<div class="meta">{{ f.date }}</div>{% endif %}
-            </div>
+            <div class="team-away">{{ f.away_team | short_name }}</div>
+            <div class="meta result-date">{{ f.date if f.date else '' }}</div>
           </div>
         {% endfor %}
       </div>

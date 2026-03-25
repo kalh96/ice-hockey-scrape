@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}Scottish Ice Hockey{% endblock %}</title>
+  <title>{% block title %}Scottish Ice Hockey News{% endblock %}</title>
   <meta name="description" content="{% block meta_description %}Articles and statistics covering Scottish ice hockey.{% endblock %}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v={{ static_version }}">
 </head>
@@ -11,7 +11,7 @@
 
 <header>
   <a class="site-title" href="{{ url_for('home') }}">
-    Scottish <span>Ice Hockey</span>
+    Scottish Ice Hockey <span>News</span>
   </a>
   <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
     <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
@@ -54,7 +54,7 @@
     <a href="{{ url_for('terms') }}">Terms of Service</a>
     <a href="{{ url_for('privacy') }}">Privacy Policy</a>
   </div>
-  <p>&copy; {{ current_year }} Scottish Ice Hockey. Stats sourced from <a href="https://www.siha-uk.co.uk" target="_blank" rel="noopener">SIHA</a>.</p>
+  <p>&copy; {{ current_year }} Scottish Ice Hockey News. Stats sourced from <a href="https://www.siha-uk.co.uk" target="_blank" rel="noopener">SIHA</a>.</p>
 </footer>
 
 <script src="{{ url_for('static', filename='js/main.js') }}?v={{ static_version }}"></script>

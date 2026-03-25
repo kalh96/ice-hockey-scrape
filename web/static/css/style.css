@@ -333,6 +333,26 @@ tbody tr:last-child td { border-bottom: none; }
   text-align: center;
 }
 
+/* Home page: date – team1 – score – team2 – competition (5 cols) */
+.result-card--5col {
+  grid-template-columns: auto 1fr auto 1fr auto;
+}
+
+/* Home page: team1 – vs – team2 – date (4 cols) */
+.result-card--4col {
+  grid-template-columns: 1fr auto 1fr auto;
+}
+
+.result-date {
+  white-space: nowrap;
+  padding-right: 0.25rem;
+}
+
+.result-comp {
+  white-space: nowrap;
+  padding-left: 0.25rem;
+}
+
 .meta {
   font-size: 0.78rem;
   color: var(--text-muted);
