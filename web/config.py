@@ -114,7 +114,7 @@ CUP_BRACKET = [
     {
         "name": "Final",
         "matchups": [
-            [1079283814],              # Caps vs Warriors
+            [90000001],                # Caps vs Warriors
         ],
     },
 ]
