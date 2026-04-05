@@ -56,7 +56,7 @@
               <div class="score">{{ f.home_score }} – {{ f.away_score }}</div>
               <div class="team-away">{{ f.away_team | short_name }}</div>
               <div class="result-comp">
-                <span class="badge {% if f.competition == 'Scottish Cup' %}cup{% endif %}">
+                <span class="badge {% if f.competition == 'Scottish Cup' %}cup{% elif f.competition == 'SNL Play-offs' %}playoffs{% endif %}">
                   {{ f.competition }}
                 </span>
               </div>
@@ -74,11 +74,16 @@
     {% if upcoming %}
       <div class="result-list">
         {% for f in upcoming %}
-          <div class="result-card result-card--4col">
+          <div class="result-card result-card--upcoming-5col">
             <div class="team-home">{{ f.home_team | short_name }}</div>
             <div class="score upcoming-score">vs</div>
             <div class="team-away">{{ f.away_team | short_name }}</div>
-            <div class="meta result-date">{{ f.date if f.date else '' }}</div>
+            <div class="meta result-date">{{ f.date if f.date else 'TBD' }}</div>
+            <div class="result-comp">
+              <span class="badge {% if f.competition == 'Scottish Cup' %}cup{% elif f.competition == 'SNL Play-offs' %}playoffs{% endif %}">
+                {{ f.competition }}
+              </span>
+            </div>
           </div>
         {% endfor %}
       </div>

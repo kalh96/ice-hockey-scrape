@@ -88,7 +88,7 @@
             {% if f.date %}<div class="meta">{{ f.date }}</div>{% endif %}
             {% if comp == 'all' %}
               <div class="meta">
-                <span class="badge {% if f.competition == 'Scottish Cup' %}cup{% endif %}">
+                <span class="badge {% if f.competition == 'Scottish Cup' %}cup{% elif f.competition == 'SNL Play-offs' %}playoffs{% endif %}">
                   {{ f.competition }}
                 </span>
               </div>
@@ -112,7 +112,7 @@
               {% if f.date %}<div class="meta">{{ f.date }}</div>{% endif %}
               {% if comp == 'all' %}
                 <div class="meta">
-                  <span class="badge {% if f.competition == 'Scottish Cup' %}cup{% endif %}">
+                  <span class="badge {% if f.competition == 'Scottish Cup' %}cup{% elif f.competition == 'SNL Play-offs' %}playoffs{% endif %}">
                     {{ f.competition }}
                   </span>
                 </div>

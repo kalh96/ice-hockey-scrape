@@ -376,6 +376,12 @@ tbody tr:last-child td { border-bottom: none; }
 }
 
 .badge.cup { background: var(--accent); }
+.badge.playoffs { background: #007a3d; }
+
+/* Home upcoming fixtures: team – vs – team – date – badge (5 cols) */
+.result-card--upcoming-5col {
+  grid-template-columns: 1fr auto 1fr auto auto;
+}
 
 /* ============================================================
    Season selector

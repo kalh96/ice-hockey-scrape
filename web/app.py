@@ -168,8 +168,8 @@ def inject_globals():
 
 @app.route("/")
 def home():
-    recent = db_queries.get_recent_results("SNL", season=CURRENT_SEASON, limit=5)
-    upcoming = db_queries.get_upcoming_fixtures("SNL", season=CURRENT_SEASON, limit=3)
+    recent = db_queries.get_recent_results("all", season=CURRENT_SEASON, limit=5)
+    upcoming = db_queries.get_upcoming_fixtures("all", season=CURRENT_SEASON, limit=5)
     standings = db_queries.get_standings("SNL", season=CURRENT_SEASON)
     articles = _load_articles()[:4]
     return render_template(

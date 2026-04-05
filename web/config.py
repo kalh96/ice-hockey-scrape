@@ -19,7 +19,7 @@ CURRENT_SEASON = "2025-26"
 SEASONS = ["2025-26"]
 
 # Competitions tracked
-COMPETITIONS = ["SNL", "Scottish Cup"]
+COMPETITIONS = ["SNL", "SNL Play-offs", "Scottish Cup"]
 
 # Team display configuration
 # Maps the DB team name (as stored from SIHA) to display info.
@@ -89,7 +89,7 @@ TEAM_BY_SLUG = {v["slug"]: k for k, v in TEAM_DISPLAY.items()}
 
 # Bump this string whenever you push CSS/JS changes to force Cloudflare to
 # fetch the new file instead of serving a stale cached copy.
-STATIC_VERSION = "20260325-7"
+STATIC_VERSION = "20260405-1"
 
 # Scottish Cup 2025-26 bracket structure.
 # Each round lists matchups; each matchup is a list of event IDs (leg 1, leg 2).
