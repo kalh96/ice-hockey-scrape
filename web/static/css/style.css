@@ -799,6 +799,21 @@ tbody tr:last-child td { border-bottom: none; }
   min-width: 0;
 }
 
+.btn-club-website {
+  display: inline-block;
+  flex-shrink: 0;
+  margin-left: auto;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--accent, #1a6fc4);
+  border-radius: 4px;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+.btn-club-website:hover { background: var(--accent-dark, #1558a0); }
+
 .team-stats-bar {
   display: flex;
   gap: 0;
@@ -1334,18 +1349,3 @@ footer a:hover {
   .prob-team-label, .prob-team-label--home { flex-direction: row; justify-content: center; }
 }
 
-/* Club website button on team pages */
-.btn-club-website {
-  display: inline-block;
-  flex-shrink: 0;
-  margin-left: auto;
-  padding: 0.35rem 0.9rem;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #fff;
-  background: var(--accent, #1a6fc4);
-  border-radius: 4px;
-  text-decoration: none;
-  transition: background 0.15s;
-}
-.btn-club-website:hover { background: var(--accent-dark, #1558a0); }
