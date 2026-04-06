@@ -1061,7 +1061,7 @@ footer a:hover {
     gap: 1rem;
   }
   .team-header-name { font-size: 1.4rem; }
-  .btn-club-website { margin-left: 0; }
+  .btn-club-website { margin-left: 0; flex-basis: 100%; }
 
   .hero { padding: 2.5rem 1.25rem; }
   .hero h1 { font-size: 1.75rem; }
