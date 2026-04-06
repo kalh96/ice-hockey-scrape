@@ -10,8 +10,8 @@ from flask import Flask, abort, render_template, request
 
 import db_queries
 from config import (
-    ARTICLES_DIR, COMPETITIONS, CUP_BRACKET, CURRENT_SEASON, SEASONS,
-    STATIC_VERSION, TEAM_BY_SLUG, TEAM_DISPLAY,
+    ARTICLES_DIR, COMPETITIONS, CUP_BRACKET, CURRENT_SEASON, PLAYOFFS_BRACKET,
+    SEASONS, STATIC_VERSION, TEAM_BY_SLUG, TEAM_DISPLAY,
 )
 
 app = Flask(__name__)
@@ -268,9 +268,15 @@ def fixtures():
     results = [f for f in all_fixtures if f["status"] == "final"]
 
     bracket = None
+    bracket_title = None
     if comp == "Scottish Cup" and season == CURRENT_SEASON:
         all_ids = [eid for rd in CUP_BRACKET for leg in rd["matchups"] for eid in leg]
         bracket = _build_cup_bracket(db_queries.get_fixtures_by_ids(all_ids))
+        bracket_title = "2025–26 Scottish Cup"
+    elif comp == "SNL Play-offs" and season == CURRENT_SEASON:
+        all_ids = [eid for rd in PLAYOFFS_BRACKET for leg in rd["matchups"] for eid in leg]
+        bracket = _build_cup_bracket(db_queries.get_fixtures_by_ids(all_ids))
+        bracket_title = "2025–26 SNL Play-offs"
 
     return render_template(
         "fixtures.html",
@@ -281,6 +287,7 @@ def fixtures():
         upcoming=upcoming,
         results=results,
         bracket=bracket,
+        bracket_title=bracket_title,
     )
 
 

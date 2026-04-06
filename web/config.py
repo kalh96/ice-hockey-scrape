@@ -94,6 +94,35 @@ STATIC_VERSION = "20260405-1"
 # Scottish Cup 2025-26 bracket structure.
 # Each round lists matchups; each matchup is a list of event IDs (leg 1, leg 2).
 # The Final has only one leg.
+# SNL Play-offs 2025-26 bracket structure.
+# QFs are two-legged (home + away); SFs and Final are one-legged.
+# Seeding: 1 Caps, 2 Rockets, 3 Warriors, 4 Pirates, 5 Kestrels, 6 Lynx, 7 Sharks, 8 Wild
+# Bracket order: 1v8 (top), 4v5, 3v6, 2v7 (bottom); SF1 = winner(1v8) v winner(4v5)
+PLAYOFFS_BRACKET = [
+    {
+        "name": "Quarter-Finals",
+        "matchups": [
+            [1202457843, 1354946084],  # 1 Caps     vs 8 Wild      → SF1
+            [1933183784, 1499847801],  # 4 Pirates  vs 5 Kestrels  → SF1
+            [1988375590, 2136022216],  # 3 Warriors vs 6 Lynx      → SF2
+            [1960190726, 1595441837],  # 2 Rockets  vs 7 Sharks    → SF2
+        ],
+    },
+    {
+        "name": "Semi-Finals",
+        "matchups": [
+            [90000021],  # SF1: winner(1v8) vs winner(4v5)
+            [90000022],  # SF2: winner(3v6) vs winner(2v7)
+        ],
+    },
+    {
+        "name": "Final",
+        "matchups": [
+            [90000031],
+        ],
+    },
+]
+
 CUP_BRACKET = [
     {
         "name": "Quarter-Finals",
