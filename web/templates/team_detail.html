@@ -15,10 +15,10 @@
   <div class="team-header-info">
     <h1 class="team-header-name">{{ info.full }}</h1>
     <div class="text-muted">{{ season }} Season</div>
-    {% if info.website %}
-      <a href="{{ info.website }}" class="btn-club-website" target="_blank" rel="noopener noreferrer">Club Website ↗</a>
-    {% endif %}
   </div>
+  {% if info.website %}
+    <a href="{{ info.website }}" class="btn-club-website" target="_blank" rel="noopener noreferrer">Club Website ↗</a>
+  {% endif %}
 </div>
 
 <!-- Related articles (shown first if present) -->
