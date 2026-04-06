@@ -98,7 +98,7 @@ TEAM_BY_SLUG = {v["slug"]: k for k, v in TEAM_DISPLAY.items()}
 
 # Bump this string whenever you push CSS/JS changes to force Cloudflare to
 # fetch the new file instead of serving a stale cached copy.
-STATIC_VERSION = "20260405-4"
+STATIC_VERSION = "20260406-5"
 
 # Scottish Cup 2025-26 bracket structure.
 # Each round lists matchups; each matchup is a list of event IDs (leg 1, leg 2).

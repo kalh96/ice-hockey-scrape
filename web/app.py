@@ -6,7 +6,7 @@ from pathlib import Path
 
 import frontmatter
 import markdown2
-from flask import Flask, abort, render_template, request
+from flask import Flask, abort, redirect, render_template, request, url_for
 
 import db_queries
 from config import (
@@ -44,6 +44,180 @@ def team_slug_filter(db_name):
 def team_logo_filter(db_name):
     """DB team name → logo filename (e.g. 'Caps' → 'edinburgh-capitals.png')."""
     return TEAM_DISPLAY.get(db_name, {}).get("logo", "")
+
+
+# ---------------------------------------------------------------------------
+# Win probability model
+# ---------------------------------------------------------------------------
+
+_FULL_CONFIDENCE_GP = 10  # games needed before prior-season data is fully dropped
+
+
+def _team_strength(db_name, season):
+    """
+    Gather strength indicators for one team.
+    Returns: pts_pct, form_pct, goal_ratio (all 0–1 floats or None), gp (int).
+
+    Early-season robustness
+    -----------------------
+    Rather than a hard switch (use prior if gp==0, else ignore it), we blend
+    current and prior season data linearly over the first _FULL_CONFIDENCE_GP
+    games.  At GP=0 it's 100 % prior; at GP>=10 it's 100 % current.
+    If no prior season exists (brand-new team or first season tracked) the
+    current data is blended with a league-neutral value of 0.5 so that a
+    hot/cold start doesn't immediately dominate the model.
+    """
+    record = db_queries.get_team_standings_row(db_name, "SNL", season)
+    gp = (record or {}).get("gp") or 0
+
+    # Always fetch prior season record for blending, regardless of current gp
+    prior_record = None
+    idx = SEASONS.index(season) if season in SEASONS else -1
+    if idx > 0:
+        prior_record = db_queries.get_team_standings_row(
+            db_name, "SNL", SEASONS[idx - 1]
+        )
+
+    # blend = 0 → all prior/neutral;  blend = 1 → all current
+    blend = min(gp, _FULL_CONFIDENCE_GP) / _FULL_CONFIDENCE_GP
+
+    def _pts_pct(rec):
+        if not rec or not rec.get("gp"):
+            return None
+        return rec["pts"] / (rec["gp"] * 2)
+
+    def _goal_ratio(rec):
+        if not rec:
+            return None
+        gf = rec.get("gf") or 0
+        ga = rec.get("ga") or 0
+        return gf / (gf + ga) if (gf + ga) > 0 else None
+
+    def _blend(curr, prior, neutral=0.5):
+        """Weighted blend; falls back gracefully when data is absent."""
+        if curr is not None and prior is not None:
+            return blend * curr + (1 - blend) * prior
+        if curr is not None:
+            # No prior season: blend current with league-neutral
+            return blend * curr + (1 - blend) * neutral
+        if prior is not None:
+            return prior   # No current data at all — use prior in full
+        return None        # No data whatsoever
+
+    curr_pts  = _pts_pct(record)
+    curr_goal = _goal_ratio(record)
+    prior_pts = _pts_pct(prior_record)
+
+    # For form: use current-season last-5, blended with prior pts% as proxy
+    form_games = db_queries.get_team_form(db_name, season, n=5)
+    curr_form  = (
+        sum(1 for g in form_games if g["result"] == "W") / len(form_games)
+        if form_games else None
+    )
+
+    return {
+        "pts_pct":    _blend(curr_pts,  prior_pts),
+        "form_pct":   _blend(curr_form, prior_pts),   # prior pts% as form proxy
+        "goal_ratio": _blend(curr_goal, _goal_ratio(prior_record)),
+        "gp":         gp,
+    }
+
+
+def calculate_win_probability(home_db, away_db, season):
+    """
+    Return win-probability dict for a scheduled fixture.
+
+    Model (weights normalised when H2H unavailable):
+      35 % — season points percentage   (blended with prior season early on)
+      30 % — recent form (last-5 win %) (blended with prior season early on)
+      20 % — goal ratio GF/(GF+GA)      (blended with prior season early on)
+      15 % — current-season H2H win rate
+             → 8 % if only prior-season H2H is available (half weight)
+             → dropped / redistributed if no H2H data at all
+    Home advantage: flat +5 % added to raw home score before normalisation.
+    Any still-missing factor defaults to 0.5 (neutral).
+    """
+    NEUTRAL = 0.5
+    HOME_ADV = 0.05
+
+    home_s = _team_strength(home_db, season)
+    away_s = _team_strength(away_db, season)
+
+    # Current-season H2H
+    h2h = db_queries.get_head_to_head(home_db, away_db, season)
+
+    # Prior-season H2H carry-forward (used at half weight when no current H2H)
+    prior_h2h = None
+    if not h2h:
+        idx = SEASONS.index(season) if season in SEASONS else -1
+        if idx > 0:
+            prior_h2h = db_queries.get_head_to_head(home_db, away_db, SEASONS[idx - 1])
+
+    def _h2h_rate(games):
+        wins = sum(
+            1 for g in games
+            if (g["home_team"] == home_db and (g["home_score"] or 0) > (g["away_score"] or 0))
+            or (g["away_team"] == home_db and (g["away_score"] or 0) > (g["home_score"] or 0))
+        )
+        return wins / len(games)
+
+    if h2h:
+        home_h2h = _h2h_rate(h2h)
+        away_h2h = 1.0 - home_h2h
+        h2h_weight = 0.15
+        h2h_source = "current"
+    elif prior_h2h:
+        home_h2h = _h2h_rate(prior_h2h)
+        away_h2h = 1.0 - home_h2h
+        h2h_weight = 0.08   # half weight — historical data, less predictive
+        h2h_source = "prior"
+    else:
+        home_h2h = away_h2h = None
+        h2h_weight = 0
+        h2h_source = "none"
+
+    def _val(v): return v if v is not None else NEUTRAL
+
+    factors = [
+        (_val(home_s["pts_pct"]),    _val(away_s["pts_pct"]),    0.35),
+        (_val(home_s["form_pct"]),   _val(away_s["form_pct"]),   0.30),
+        (_val(home_s["goal_ratio"]), _val(away_s["goal_ratio"]), 0.20),
+    ]
+    if home_h2h is not None:
+        factors.append((home_h2h, away_h2h, h2h_weight))
+
+    total_w  = sum(f[2] for f in factors)
+    raw_home = sum(h * w for h, _, w in factors) / total_w + HOME_ADV
+    raw_away = sum(a * w for _, a, w in factors) / total_w
+    total    = raw_home + raw_away
+
+    home_pct = round(raw_home / total * 100)
+    away_pct = 100 - home_pct
+
+    def _pct(v): return round(v * 100) if v is not None else None
+
+    return {
+        "home_pct":  home_pct,
+        "away_pct":  away_pct,
+        "home_factors": {
+            "pts":  _pct(home_s["pts_pct"]),
+            "form": _pct(home_s["form_pct"]),
+            "goals": _pct(home_s["goal_ratio"]),
+            "h2h":  _pct(home_h2h),
+        },
+        "away_factors": {
+            "pts":  _pct(away_s["pts_pct"]),
+            "form": _pct(away_s["form_pct"]),
+            "goals": _pct(away_s["goal_ratio"]),
+            "h2h":  _pct(away_h2h),
+        },
+        "h2h_count":  len(h2h),
+        "h2h_source": h2h_source,
+        "prior_h2h_count": len(prior_h2h) if prior_h2h else 0,
+        "home_gp":    home_s["gp"],
+        "away_gp":    away_s["gp"],
+        "using_prior_season": home_s["gp"] < _FULL_CONFIDENCE_GP or away_s["gp"] < _FULL_CONFIDENCE_GP,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -294,8 +468,50 @@ def fixtures():
     )
 
 
+@app.route("/fixtures/<int:event_id>/preview/")
+def fixture_preview(event_id):
+    fixtures_map = db_queries.get_fixtures_by_ids([event_id])
+    if not fixtures_map:
+        abort(404)
+    fixture = fixtures_map[event_id]
+
+    if fixture["status"] == "final":
+        return redirect(url_for("event_detail", event_id=event_id))
+
+    home_db = fixture["home_team"]
+    away_db = fixture["away_team"]
+
+    home_skaters   = db_queries.get_team_skater_stats(home_db,   season=CURRENT_SEASON)
+    home_netminders = db_queries.get_team_netminder_stats(home_db, season=CURRENT_SEASON)
+    away_skaters   = db_queries.get_team_skater_stats(away_db,   season=CURRENT_SEASON)
+    away_netminders = db_queries.get_team_netminder_stats(away_db, season=CURRENT_SEASON)
+
+    home_form = db_queries.get_team_form(home_db, CURRENT_SEASON)
+    away_form = db_queries.get_team_form(away_db, CURRENT_SEASON)
+    h2h       = db_queries.get_head_to_head(home_db, away_db, CURRENT_SEASON)
+    prob      = calculate_win_probability(home_db, away_db, CURRENT_SEASON)
+
+    return render_template(
+        "fixture_preview.html",
+        fixture=fixture,
+        home_skaters=home_skaters,
+        home_netminders=home_netminders,
+        away_skaters=away_skaters,
+        away_netminders=away_netminders,
+        home_form=home_form,
+        away_form=away_form,
+        h2h=h2h,
+        prob=prob,
+    )
+
+
 @app.route("/fixtures/<int:event_id>/")
 def event_detail(event_id):
+    # Redirect scheduled games to the preview page
+    fixtures_map = db_queries.get_fixtures_by_ids([event_id])
+    if fixtures_map and fixtures_map[event_id]["status"] != "final":
+        return redirect(url_for("fixture_preview", event_id=event_id))
+
     data = db_queries.get_event_detail(event_id)
     if data is None:
         abort(404)

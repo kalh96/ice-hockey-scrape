@@ -81,21 +81,23 @@
     <h2 class="section-title">Upcoming</h2>
     <div class="result-list">
       {% for f in upcoming %}
-        <div class="result-card">
-          <div class="team-home">{{ f.home_team | short_name }}</div>
-          <div class="result-card-centre">
-            <div class="score upcoming-score">vs</div>
-            {% if f.date %}<div class="meta">{{ f.date }}</div>{% endif %}
-            {% if comp == 'all' %}
-              <div class="meta">
-                <span class="badge {% if f.competition == 'Scottish Cup' %}cup{% elif f.competition == 'SNL Play-offs' %}playoffs{% endif %}">
-                  {{ f.competition }}
-                </span>
-              </div>
-            {% endif %}
+        <a href="{{ url_for('fixture_preview', event_id=f.event_id) }}" class="result-card-link">
+          <div class="result-card">
+            <div class="team-home">{{ f.home_team | short_name }}</div>
+            <div class="result-card-centre">
+              <div class="score upcoming-score">vs</div>
+              {% if f.date %}<div class="meta">{{ f.date }}</div>{% endif %}
+              {% if comp == 'all' %}
+                <div class="meta">
+                  <span class="badge {% if f.competition == 'Scottish Cup' %}cup{% elif f.competition == 'SNL Play-offs' %}playoffs{% endif %}">
+                    {{ f.competition }}
+                  </span>
+                </div>
+              {% endif %}
+            </div>
+            <div class="team-away">{{ f.away_team | short_name }}</div>
           </div>
-          <div class="team-away">{{ f.away_team | short_name }}</div>
-        </div>
+        </a>
       {% endfor %}
     </div>
   {% endif %}

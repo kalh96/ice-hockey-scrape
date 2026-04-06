@@ -116,16 +116,18 @@
     {% if upcoming %}
       <div class="result-list">
         {% for f in upcoming %}
-          <div class="result-card result-card--4col">
-            <div class="team-home {% if f.home_team == db_name %}team-highlight{% endif %}">
-              {{ f.home_team | short_name }}
+          <a href="{{ url_for('fixture_preview', event_id=f.event_id) }}" class="result-card-link">
+            <div class="result-card result-card--4col">
+              <div class="team-home {% if f.home_team == db_name %}team-highlight{% endif %}">
+                {{ f.home_team | short_name }}
+              </div>
+              <div class="score upcoming-score">vs</div>
+              <div class="team-away {% if f.away_team == db_name %}team-highlight{% endif %}">
+                {{ f.away_team | short_name }}
+              </div>
+              <div class="meta result-date">{{ f.date if f.date else '' }}</div>
             </div>
-            <div class="score upcoming-score">vs</div>
-            <div class="team-away {% if f.away_team == db_name %}team-highlight{% endif %}">
-              {{ f.away_team | short_name }}
-            </div>
-            <div class="meta result-date">{{ f.date if f.date else '' }}</div>
-          </div>
+          </a>
         {% endfor %}
       </div>
     {% else %}
@@ -138,12 +140,13 @@
 {% if skaters %}
   {% set snl_skaters = skaters | selectattr('competition', 'eq', 'SNL') | list %}
   {% set cup_skaters = skaters | selectattr('competition', 'eq', 'Scottish Cup') | list %}
+  {% set playoffs_skaters = skaters | selectattr('competition', 'eq', 'SNL Play-offs') | list %}
 
   <h2 class="section-title mt-2">Skater Statistics</h2>
 
-  {% for group, rows in [('SNL', snl_skaters), ('Scottish Cup', cup_skaters)] %}
+  {% for group, rows in [('SNL', snl_skaters), ('SNL Play-offs', playoffs_skaters), ('Scottish Cup', cup_skaters)] %}
     {% if rows %}
-      {% if snl_skaters and cup_skaters %}
+      {% if (snl_skaters and cup_skaters) or (snl_skaters and playoffs_skaters) or (cup_skaters and playoffs_skaters) %}
         <p class="text-muted mb-1"><strong>{{ group }}</strong></p>
       {% endif %}
       <div class="table-wrapper">
@@ -182,12 +185,13 @@
 {% if netminders %}
   {% set snl_netminders = netminders | selectattr('competition', 'eq', 'SNL') | list %}
   {% set cup_netminders = netminders | selectattr('competition', 'eq', 'Scottish Cup') | list %}
+  {% set playoffs_netminders = netminders | selectattr('competition', 'eq', 'SNL Play-offs') | list %}
 
   <h2 class="section-title mt-2">Netminder Statistics</h2>
 
-  {% for group, rows in [('SNL', snl_netminders), ('Scottish Cup', cup_netminders)] %}
+  {% for group, rows in [('SNL', snl_netminders), ('SNL Play-offs', playoffs_netminders), ('Scottish Cup', cup_netminders)] %}
     {% if rows %}
-      {% if snl_netminders and cup_netminders %}
+      {% if (snl_netminders and cup_netminders) or (snl_netminders and playoffs_netminders) or (cup_netminders and playoffs_netminders) %}
         <p class="text-muted mb-1"><strong>{{ group }}</strong></p>
       {% endif %}
       <div class="table-wrapper">

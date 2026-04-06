@@ -1,0 +1,368 @@
+{% extends "base.html" %}
+{% block title %}{{ fixture.home_team | short_name }} vs {{ fixture.away_team | short_name }} Preview – Scottish Ice Hockey News{% endblock %}
+{% block meta_description %}Match preview: {{ fixture.home_team | full_name }} vs {{ fixture.away_team | full_name }}.{% endblock %}
+
+{% block content %}
+
+<div class="back-link">
+  <a href="{{ url_for('fixtures') }}">← Fixtures &amp; Results</a>
+</div>
+
+<!-- Fixture header -->
+<div class="preview-header">
+  <div class="preview-team preview-team--home">
+    <img src="{{ url_for('static', filename='img/teams/' + (fixture.home_team | team_logo)) }}?v={{ static_version }}"
+         alt="{{ fixture.home_team | full_name }}" class="preview-team-logo" onerror="this.style.display='none'">
+    <div class="preview-team-name">{{ fixture.home_team | full_name }}</div>
+    <div class="preview-team-sub">Home</div>
+  </div>
+
+  <div class="preview-centre">
+    <div class="preview-vs">vs</div>
+    {% if fixture.date %}
+      <div class="preview-date">{{ fixture.date }}</div>
+    {% endif %}
+    <div class="preview-comp">
+      <span class="badge {% if fixture.competition == 'Scottish Cup' %}cup{% elif fixture.competition == 'SNL Play-offs' %}playoffs{% endif %}">
+        {{ fixture.competition }}
+      </span>
+    </div>
+  </div>
+
+  <div class="preview-team preview-team--away">
+    <img src="{{ url_for('static', filename='img/teams/' + (fixture.away_team | team_logo)) }}?v={{ static_version }}"
+         alt="{{ fixture.away_team | full_name }}" class="preview-team-logo" onerror="this.style.display='none'">
+    <div class="preview-team-name">{{ fixture.away_team | full_name }}</div>
+    <div class="preview-team-sub">Away</div>
+  </div>
+</div>
+
+<!-- Win probability -->
+<div class="prob-section mt-2">
+  <h2 class="section-title">Win Prediction</h2>
+
+  <div class="prob-matchup">
+    <div class="prob-team-label prob-team-label--home">
+      <span class="prob-pct prob-pct--home">{{ prob.home_pct }}%</span>
+      <span class="prob-name">{{ fixture.home_team | short_name }}</span>
+    </div>
+    <div class="prob-bar-wrap">
+      <div class="prob-bar">
+        <div class="prob-bar-home" style="width: {{ prob.home_pct }}%"></div>
+        <div class="prob-bar-away" style="width: {{ prob.away_pct }}%"></div>
+      </div>
+    </div>
+    <div class="prob-team-label prob-team-label--away">
+      <span class="prob-name">{{ fixture.away_team | short_name }}</span>
+      <span class="prob-pct prob-pct--away">{{ prob.away_pct }}%</span>
+    </div>
+  </div>
+
+  <!-- Factor breakdown -->
+  <div class="prob-factors">
+    <table>
+      <thead>
+        <tr>
+          <th>Factor</th>
+          <th class="num">{{ fixture.home_team | short_name }}</th>
+          <th class="num">{{ fixture.away_team | short_name }}</th>
+          <th class="text-muted">Weight</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Season pts %</td>
+          <td class="num">{{ prob.home_factors.pts ~ '%' if prob.home_factors.pts is not none else '–' }}</td>
+          <td class="num">{{ prob.away_factors.pts ~ '%' if prob.away_factors.pts is not none else '–' }}</td>
+          <td class="text-muted">35%</td>
+        </tr>
+        <tr>
+          <td>Recent form (last 5)</td>
+          <td class="num">{{ prob.home_factors.form ~ '%' if prob.home_factors.form is not none else '–' }}</td>
+          <td class="num">{{ prob.away_factors.form ~ '%' if prob.away_factors.form is not none else '–' }}</td>
+          <td class="text-muted">30%</td>
+        </tr>
+        <tr>
+          <td>Goal ratio</td>
+          <td class="num">{{ prob.home_factors.goals ~ '%' if prob.home_factors.goals is not none else '–' }}</td>
+          <td class="num">{{ prob.away_factors.goals ~ '%' if prob.away_factors.goals is not none else '–' }}</td>
+          <td class="text-muted">20%</td>
+        </tr>
+        {% if prob.h2h_source == 'current' %}
+        <tr>
+          <td>Head-to-head ({{ prob.h2h_count }} game{{ 's' if prob.h2h_count != 1 }})</td>
+          <td class="num">{{ prob.home_factors.h2h ~ '%' if prob.home_factors.h2h is not none else '–' }}</td>
+          <td class="num">{{ prob.away_factors.h2h ~ '%' if prob.away_factors.h2h is not none else '–' }}</td>
+          <td class="text-muted">15%</td>
+        </tr>
+        {% elif prob.h2h_source == 'prior' %}
+        <tr>
+          <td>Head-to-head — prior season ({{ prob.prior_h2h_count }} game{{ 's' if prob.prior_h2h_count != 1 }})</td>
+          <td class="num">{{ prob.home_factors.h2h ~ '%' if prob.home_factors.h2h is not none else '–' }}</td>
+          <td class="num">{{ prob.away_factors.h2h ~ '%' if prob.away_factors.h2h is not none else '–' }}</td>
+          <td class="text-muted">8%*</td>
+        </tr>
+        {% endif %}
+        <tr class="prob-factors-note">
+          <td colspan="4" class="text-muted">
+            Home advantage (+5%) applied.
+            {% if prob.h2h_source == 'prior' %}
+              H2H based on {{ prob.prior_h2h_count }} prior-season meeting{{ 's' if prob.prior_h2h_count != 1 }} (half weight).
+            {% elif prob.h2h_count == 0 and prob.h2h_source == 'none' %}
+              No H2H data — weight redistributed.
+            {% endif %}
+            {% if prob.using_prior_season %}
+              Season stats blended with prior-season data (early in season).
+            {% endif %}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Recent form -->
+<div class="home-grid mt-2">
+
+  <div>
+    <h2 class="section-title">{{ fixture.home_team | short_name }} — Recent Form</h2>
+    {% if home_form %}
+      <div class="form-list">
+        {% for g in home_form %}
+          <a href="{{ url_for('event_detail', event_id=g.event_id) }}" class="form-row result-card-link">
+            <span class="form-pill form-pill--{{ g.result }}">{{ g.result }}</span>
+            <span class="form-opponent">{{ 'vs' if g.home_game else '@' }} {{ g.opponent | short_name }}</span>
+            <span class="form-score">{{ g.gf }}–{{ g.ga }}</span>
+            <span class="form-comp text-muted">{{ g.competition }}</span>
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="no-data">No results yet this season.</p>
+    {% endif %}
+  </div>
+
+  <div>
+    <h2 class="section-title">{{ fixture.away_team | short_name }} — Recent Form</h2>
+    {% if away_form %}
+      <div class="form-list">
+        {% for g in away_form %}
+          <a href="{{ url_for('event_detail', event_id=g.event_id) }}" class="form-row result-card-link">
+            <span class="form-pill form-pill--{{ g.result }}">{{ g.result }}</span>
+            <span class="form-opponent">{{ 'vs' if g.home_game else '@' }} {{ g.opponent | short_name }}</span>
+            <span class="form-score">{{ g.gf }}–{{ g.ga }}</span>
+            <span class="form-comp text-muted">{{ g.competition }}</span>
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="no-data">No results yet this season.</p>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- Head-to-head -->
+<div class="mt-2">
+  <h2 class="section-title">Head-to-Head This Season</h2>
+  {% if h2h %}
+    <div class="result-list">
+      {% for g in h2h %}
+        <a href="{{ url_for('event_detail', event_id=g.event_id) }}" class="result-card-link">
+          <div class="result-card">
+            <div class="team-home">{{ g.home_team | short_name }}</div>
+            <div class="result-card-centre">
+              <div class="score">{{ g.home_score }} – {{ g.away_score }}</div>
+              {% if g.date %}<div class="meta">{{ g.date }}</div>{% endif %}
+              <div class="meta">
+                <span class="badge {% if g.competition == 'Scottish Cup' %}cup{% elif g.competition == 'SNL Play-offs' %}playoffs{% endif %}">
+                  {{ g.competition }}
+                </span>
+              </div>
+            </div>
+            <div class="team-away">{{ g.away_team | short_name }}</div>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="no-data">No previous meetings between these teams this season.</p>
+  {% endif %}
+</div>
+
+<!-- Team rosters -->
+<div class="mt-2">
+  <h2 class="section-title">Team Rosters</h2>
+
+  <div class="roster-tabs">
+    <div class="roster-tab-btns">
+      <button class="tab-btn active" data-tab="home">
+        <img src="{{ url_for('static', filename='img/teams/' + (fixture.home_team | team_logo)) }}?v={{ static_version }}"
+             alt="" class="team-logo-sm" onerror="this.style.display='none'">
+        {{ fixture.home_team | short_name }}
+      </button>
+      <button class="tab-btn" data-tab="away">
+        <img src="{{ url_for('static', filename='img/teams/' + (fixture.away_team | team_logo)) }}?v={{ static_version }}"
+             alt="" class="team-logo-sm" onerror="this.style.display='none'">
+        {{ fixture.away_team | short_name }}
+      </button>
+    </div>
+
+    <!-- Home roster -->
+    <div class="tab-panel active" id="tab-home">
+      {% set home_snl = home_skaters | selectattr('competition', 'eq', 'SNL') | list %}
+      {% set home_cup = home_skaters | selectattr('competition', 'eq', 'Scottish Cup') | list %}
+      {% set home_po  = home_skaters | selectattr('competition', 'eq', 'SNL Play-offs') | list %}
+
+      {% for group, rows in [('SNL', home_snl), ('SNL Play-offs', home_po), ('Scottish Cup', home_cup)] %}
+        {% if rows %}
+          {% if (home_snl and home_cup) or (home_snl and home_po) or (home_cup and home_po) %}
+            <p class="text-muted mb-1 mt-2"><strong>{{ group }}</strong></p>
+          {% endif %}
+          <div class="table-wrapper">
+            <table class="sortable">
+              <thead>
+                <tr>
+                  <th>Player</th><th>Pos</th>
+                  <th class="num">GP</th><th class="num">G</th><th class="num">A</th>
+                  <th class="num">PTS</th><th class="num">PIM</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for s in rows %}
+                  <tr>
+                    <td>{{ s.player_name }}</td>
+                    <td>{{ s.position or '–' }}</td>
+                    <td class="num">{{ s.gp }}</td>
+                    <td class="num">{{ s.goals }}</td>
+                    <td class="num">{{ s.assists }}</td>
+                    <td class="num"><strong>{{ s.total_points }}</strong></td>
+                    <td class="num">{{ s.pim }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% endif %}
+      {% endfor %}
+
+      {% set home_nm_snl = home_netminders | selectattr('competition', 'eq', 'SNL') | list %}
+      {% set home_nm_cup = home_netminders | selectattr('competition', 'eq', 'Scottish Cup') | list %}
+      {% set home_nm_po  = home_netminders | selectattr('competition', 'eq', 'SNL Play-offs') | list %}
+
+      {% for group, rows in [('SNL', home_nm_snl), ('SNL Play-offs', home_nm_po), ('Scottish Cup', home_nm_cup)] %}
+        {% if rows %}
+          <p class="text-muted mb-1 mt-2"><strong>{{ group }} – Netminders</strong></p>
+          <div class="table-wrapper">
+            <table class="sortable">
+              <thead>
+                <tr>
+                  <th>Netminder</th>
+                  <th class="num">GP</th><th class="num">SA</th><th class="num">SV</th>
+                  <th class="num">GA</th><th class="num">SV%</th><th class="num">GAA</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for n in rows %}
+                  <tr>
+                    <td>{{ n.player_name }}</td>
+                    <td class="num">{{ n.gp }}</td>
+                    <td class="num">{{ n.shots_against if n.shots_against is not none else '–' }}</td>
+                    <td class="num">{{ n.saves if n.saves is not none else '–' }}</td>
+                    <td class="num">{{ n.goals_against if n.goals_against is not none else '–' }}</td>
+                    <td class="num">{{ '%.3f'|format(n.save_pct) if n.save_pct is not none else '–' }}</td>
+                    <td class="num">{{ '%.2f'|format(n.gaa) if n.gaa is not none else '–' }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% endif %}
+      {% endfor %}
+
+      {% if not home_skaters and not home_netminders %}
+        <p class="no-data">No season stats available yet for {{ fixture.home_team | full_name }}.</p>
+      {% endif %}
+    </div>
+
+    <!-- Away roster -->
+    <div class="tab-panel" id="tab-away">
+      {% set away_snl = away_skaters | selectattr('competition', 'eq', 'SNL') | list %}
+      {% set away_cup = away_skaters | selectattr('competition', 'eq', 'Scottish Cup') | list %}
+      {% set away_po  = away_skaters | selectattr('competition', 'eq', 'SNL Play-offs') | list %}
+
+      {% for group, rows in [('SNL', away_snl), ('SNL Play-offs', away_po), ('Scottish Cup', away_cup)] %}
+        {% if rows %}
+          {% if (away_snl and away_cup) or (away_snl and away_po) or (away_cup and away_po) %}
+            <p class="text-muted mb-1 mt-2"><strong>{{ group }}</strong></p>
+          {% endif %}
+          <div class="table-wrapper">
+            <table class="sortable">
+              <thead>
+                <tr>
+                  <th>Player</th><th>Pos</th>
+                  <th class="num">GP</th><th class="num">G</th><th class="num">A</th>
+                  <th class="num">PTS</th><th class="num">PIM</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for s in rows %}
+                  <tr>
+                    <td>{{ s.player_name }}</td>
+                    <td>{{ s.position or '–' }}</td>
+                    <td class="num">{{ s.gp }}</td>
+                    <td class="num">{{ s.goals }}</td>
+                    <td class="num">{{ s.assists }}</td>
+                    <td class="num"><strong>{{ s.total_points }}</strong></td>
+                    <td class="num">{{ s.pim }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% endif %}
+      {% endfor %}
+
+      {% set away_nm_snl = away_netminders | selectattr('competition', 'eq', 'SNL') | list %}
+      {% set away_nm_cup = away_netminders | selectattr('competition', 'eq', 'Scottish Cup') | list %}
+      {% set away_nm_po  = away_netminders | selectattr('competition', 'eq', 'SNL Play-offs') | list %}
+
+      {% for group, rows in [('SNL', away_nm_snl), ('SNL Play-offs', away_nm_po), ('Scottish Cup', away_nm_cup)] %}
+        {% if rows %}
+          <p class="text-muted mb-1 mt-2"><strong>{{ group }} – Netminders</strong></p>
+          <div class="table-wrapper">
+            <table class="sortable">
+              <thead>
+                <tr>
+                  <th>Netminder</th>
+                  <th class="num">GP</th><th class="num">SA</th><th class="num">SV</th>
+                  <th class="num">GA</th><th class="num">SV%</th><th class="num">GAA</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for n in rows %}
+                  <tr>
+                    <td>{{ n.player_name }}</td>
+                    <td class="num">{{ n.gp }}</td>
+                    <td class="num">{{ n.shots_against if n.shots_against is not none else '–' }}</td>
+                    <td class="num">{{ n.saves if n.saves is not none else '–' }}</td>
+                    <td class="num">{{ n.goals_against if n.goals_against is not none else '–' }}</td>
+                    <td class="num">{{ '%.3f'|format(n.save_pct) if n.save_pct is not none else '–' }}</td>
+                    <td class="num">{{ '%.2f'|format(n.gaa) if n.gaa is not none else '–' }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% endif %}
+      {% endfor %}
+
+      {% if not away_skaters and not away_netminders %}
+        <p class="no-data">No season stats available yet for {{ fixture.away_team | full_name }}.</p>
+      {% endif %}
+    </div>
+
+  </div>{# /roster-tabs #}
+</div>
+
+{% endblock %}

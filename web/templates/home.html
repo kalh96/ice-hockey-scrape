@@ -74,17 +74,19 @@
     {% if upcoming %}
       <div class="result-list">
         {% for f in upcoming %}
-          <div class="result-card result-card--upcoming-5col">
-            <div class="team-home">{{ f.home_team | short_name }}</div>
-            <div class="score upcoming-score">vs</div>
-            <div class="team-away">{{ f.away_team | short_name }}</div>
-            <div class="meta result-date">{{ f.date if f.date else 'TBD' }}</div>
-            <div class="result-comp">
-              <span class="badge {% if f.competition == 'Scottish Cup' %}cup{% elif f.competition == 'SNL Play-offs' %}playoffs{% endif %}">
-                {{ f.competition }}
-              </span>
+          <a href="{{ url_for('fixture_preview', event_id=f.event_id) }}" class="result-card-link">
+            <div class="result-card result-card--upcoming-5col">
+              <div class="team-home">{{ f.home_team | short_name }}</div>
+              <div class="score upcoming-score">vs</div>
+              <div class="team-away">{{ f.away_team | short_name }}</div>
+              <div class="meta result-date">{{ f.date if f.date else 'TBD' }}</div>
+              <div class="result-comp">
+                <span class="badge {% if f.competition == 'Scottish Cup' %}cup{% elif f.competition == 'SNL Play-offs' %}playoffs{% endif %}">
+                  {{ f.competition }}
+                </span>
+              </div>
             </div>
-          </div>
+          </a>
         {% endfor %}
       </div>
     {% else %}

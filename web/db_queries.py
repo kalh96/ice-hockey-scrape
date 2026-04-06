@@ -404,6 +404,74 @@ def get_fixtures_by_ids(event_ids):
         conn.close()
 
 
+def get_team_form(db_name, season, n=5):
+    """Last n completed games for a team across all competitions, newest first.
+    Each row gains: result ('W'/'L'), gf, ga, opponent, home_game."""
+    conn = get_connection()
+    try:
+        rows = conn.execute(
+            """
+            SELECT f.event_id, f.date, f.home_score, f.away_score,
+                   ht.name AS home_team, at.name AS away_team,
+                   c.name AS competition
+            FROM fixtures f
+            JOIN teams ht ON ht.id = f.home_team_id
+            JOIN teams at ON at.id = f.away_team_id
+            JOIN competitions c ON c.id = f.competition_id
+            WHERE f.status = 'final'
+              AND f.season = ?
+              AND (ht.name = ? OR at.name = ?)
+            ORDER BY COALESCE(f.date, '0') DESC, f.event_id DESC
+            LIMIT ?
+            """,
+            (season, db_name, db_name, n),
+        ).fetchall()
+        results = []
+        for r in rows:
+            d = dict(r)
+            is_home = d['home_team'] == db_name
+            d['result'] = 'W' if (
+                (is_home and (d['home_score'] or 0) > (d['away_score'] or 0)) or
+                (not is_home and (d['away_score'] or 0) > (d['home_score'] or 0))
+            ) else 'L'
+            d['gf'] = d['home_score'] if is_home else d['away_score']
+            d['ga'] = d['away_score'] if is_home else d['home_score']
+            d['opponent'] = d['away_team'] if is_home else d['home_team']
+            d['home_game'] = is_home
+            results.append(d)
+        return results
+    finally:
+        conn.close()
+
+
+def get_head_to_head(team1_db, team2_db, season):
+    """All completed games between two teams this season, newest first."""
+    conn = get_connection()
+    try:
+        rows = conn.execute(
+            """
+            SELECT f.event_id, f.date, f.home_score, f.away_score,
+                   ht.name AS home_team, at.name AS away_team,
+                   c.name AS competition
+            FROM fixtures f
+            JOIN teams ht ON ht.id = f.home_team_id
+            JOIN teams at ON at.id = f.away_team_id
+            JOIN competitions c ON c.id = f.competition_id
+            WHERE f.status = 'final'
+              AND f.season = ?
+              AND (
+                (ht.name = ? AND at.name = ?)
+                OR  (ht.name = ? AND at.name = ?)
+              )
+            ORDER BY COALESCE(f.date, '0') DESC, f.event_id DESC
+            """,
+            (season, team1_db, team2_db, team2_db, team1_db),
+        ).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
 def get_event_detail(event_id):
     conn = get_connection()
     try:
