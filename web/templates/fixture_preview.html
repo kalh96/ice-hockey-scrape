@@ -58,67 +58,6 @@
     </div>
   </div>
 
-  <!-- Factor breakdown -->
-  <div class="prob-factors">
-    <table>
-      <thead>
-        <tr>
-          <th>Factor</th>
-          <th class="num">{{ fixture.home_team | short_name }}</th>
-          <th class="num">{{ fixture.away_team | short_name }}</th>
-          <th class="text-muted">Weight</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>Season pts %</td>
-          <td class="num">{{ prob.home_factors.pts ~ '%' if prob.home_factors.pts is not none else '–' }}</td>
-          <td class="num">{{ prob.away_factors.pts ~ '%' if prob.away_factors.pts is not none else '–' }}</td>
-          <td class="text-muted">35%</td>
-        </tr>
-        <tr>
-          <td>Recent form (last 5)</td>
-          <td class="num">{{ prob.home_factors.form ~ '%' if prob.home_factors.form is not none else '–' }}</td>
-          <td class="num">{{ prob.away_factors.form ~ '%' if prob.away_factors.form is not none else '–' }}</td>
-          <td class="text-muted">30%</td>
-        </tr>
-        <tr>
-          <td>Goal ratio</td>
-          <td class="num">{{ prob.home_factors.goals ~ '%' if prob.home_factors.goals is not none else '–' }}</td>
-          <td class="num">{{ prob.away_factors.goals ~ '%' if prob.away_factors.goals is not none else '–' }}</td>
-          <td class="text-muted">20%</td>
-        </tr>
-        {% if prob.h2h_source == 'current' %}
-        <tr>
-          <td>Head-to-head ({{ prob.h2h_count }} game{{ 's' if prob.h2h_count != 1 }})</td>
-          <td class="num">{{ prob.home_factors.h2h ~ '%' if prob.home_factors.h2h is not none else '–' }}</td>
-          <td class="num">{{ prob.away_factors.h2h ~ '%' if prob.away_factors.h2h is not none else '–' }}</td>
-          <td class="text-muted">15%</td>
-        </tr>
-        {% elif prob.h2h_source == 'prior' %}
-        <tr>
-          <td>Head-to-head — prior season ({{ prob.prior_h2h_count }} game{{ 's' if prob.prior_h2h_count != 1 }})</td>
-          <td class="num">{{ prob.home_factors.h2h ~ '%' if prob.home_factors.h2h is not none else '–' }}</td>
-          <td class="num">{{ prob.away_factors.h2h ~ '%' if prob.away_factors.h2h is not none else '–' }}</td>
-          <td class="text-muted">8%*</td>
-        </tr>
-        {% endif %}
-        <tr class="prob-factors-note">
-          <td colspan="4" class="text-muted">
-            Home advantage (+5%) applied.
-            {% if prob.h2h_source == 'prior' %}
-              H2H based on {{ prob.prior_h2h_count }} prior-season meeting{{ 's' if prob.prior_h2h_count != 1 }} (half weight).
-            {% elif prob.h2h_count == 0 and prob.h2h_source == 'none' %}
-              No H2H data — weight redistributed.
-            {% endif %}
-            {% if prob.using_prior_season %}
-              Season stats blended with prior-season data (early in season).
-            {% endif %}
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
 </div>
 
 <!-- Recent form -->
