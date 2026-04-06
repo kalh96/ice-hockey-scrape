@@ -50,8 +50,11 @@ def team_logo_filter(db_name):
 # Cup bracket builder
 # ---------------------------------------------------------------------------
 
-def _build_cup_bracket(fixtures_by_id):
+def _build_cup_bracket(fixtures_by_id, bracket_def=None):
     """Build a renderable bracket structure from a {event_id: fixture} lookup."""
+    if bracket_def is None:
+        bracket_def = CUP_BRACKET
+
     def goals_for(team, leg):
         if leg['home_team'] == team:
             return leg['home_score'] or 0
@@ -60,7 +63,7 @@ def _build_cup_bracket(fixtures_by_id):
         return 0
 
     rounds = []
-    for round_def in CUP_BRACKET:
+    for round_def in bracket_def:
         matchups = []
         for leg_ids in round_def['matchups']:
             legs = [fixtures_by_id[eid] for eid in leg_ids if eid in fixtures_by_id]
@@ -275,7 +278,7 @@ def fixtures():
         bracket_title = "2025–26 Scottish Cup"
     elif comp == "SNL Play-offs" and season == CURRENT_SEASON:
         all_ids = [eid for rd in PLAYOFFS_BRACKET for leg in rd["matchups"] for eid in leg]
-        bracket = _build_cup_bracket(db_queries.get_fixtures_by_ids(all_ids))
+        bracket = _build_cup_bracket(db_queries.get_fixtures_by_ids(all_ids), PLAYOFFS_BRACKET)
         bracket_title = "2025–26 SNL Play-offs"
 
     return render_template(
