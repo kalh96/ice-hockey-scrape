@@ -29,58 +29,67 @@ COMPETITIONS = ["SNL", "SNL Play-offs", "Scottish Cup"]
 # logo  = filename in web/static/img/teams/
 TEAM_DISPLAY = {
     "Caps": {
-        "full":  "Edinburgh Capitals",
-        "short": "Capitals",
-        "slug":  "edinburgh-capitals",
-        "logo":  "edinburgh-capitals.png",
+        "full":    "Edinburgh Capitals",
+        "short":   "Capitals",
+        "slug":    "edinburgh-capitals",
+        "logo":    "edinburgh-capitals.png",
+        "website": "https://www.edcapitals.com",
     },
     "Rockets": {
-        "full":  "Dundee Rockets",
-        "short": "Rockets",
-        "slug":  "dundee-rockets",
-        "logo":  "dundee-rockets.png",
+        "full":    "Dundee Rockets",
+        "short":   "Rockets",
+        "slug":    "dundee-rockets",
+        "logo":    "dundee-rockets.png",
+        "website": "https://www.facebook.com/p/Dundee-Rockets-61561126066202/",
     },
     "Warriors": {
-        "full":  "Whitley Bay Warriors",
-        "short": "Warriors",
-        "slug":  "whitley-bay-warriors",
-        "logo":  "whitley-bay-warriors.png",
+        "full":    "Whitley Bay Warriors",
+        "short":   "Warriors",
+        "slug":    "whitley-bay-warriors",
+        "logo":    "whitley-bay-warriors.png",
+        "website": "https://whitleywarriors.net",
     },
     "Paisley Pirates": {
-        "full":  "Paisley Pirates",
-        "short": "Pirates",
-        "slug":  "paisley-pirates",
-        "logo":  "paisley-pirates.png",
+        "full":    "Paisley Pirates",
+        "short":   "Pirates",
+        "slug":    "paisley-pirates",
+        "logo":    "paisley-pirates.png",
+        "website": "https://www.paisleypirates.co.uk",
     },
     "Kestrels": {
-        "full":  "Kirkcaldy Kestrels",
-        "short": "Kestrels",
-        "slug":  "kirkcaldy-kestrels",
-        "logo":  "kirkcaldy-kestrels.png",
+        "full":    "Kirkcaldy Kestrels",
+        "short":   "Kestrels",
+        "slug":    "kirkcaldy-kestrels",
+        "logo":    "kirkcaldy-kestrels.png",
+        "website": "https://kihc.org.uk/kirkcaldy-kestrels/",
     },
     "Lynx": {
-        "full":  "Aberdeen Lynx",
-        "short": "Lynx",
-        "slug":  "aberdeen-lynx",
-        "logo":  "aberdeen-lynx.png",
+        "full":    "Aberdeen Lynx",
+        "short":   "Lynx",
+        "slug":    "aberdeen-lynx",
+        "logo":    "aberdeen-lynx.png",
+        "website": "https://aberdeenlynx.com",
     },
     "Sharks": {
-        "full":  "Solway Sharks",
-        "short": "Sharks",
-        "slug":  "solway-sharks",
-        "logo":  "solway-sharks.png",
+        "full":    "Solway Sharks",
+        "short":   "Sharks",
+        "slug":    "solway-sharks",
+        "logo":    "solway-sharks.png",
+        "website": "https://siha-uk.co.uk/team/solway-sharks-snl/",
     },
     "Wild": {
-        "full":  "North Ayrshire Wild",
-        "short": "Wild",
-        "slug":  "north-ayrshire-wild",
-        "logo":  "north-ayrshire-wild.png",
+        "full":    "North Ayrshire Wild",
+        "short":   "Wild",
+        "slug":    "north-ayrshire-wild",
+        "logo":    "north-ayrshire-wild.png",
+        "website": "https://siha-uk.co.uk/team/north-ayrshire-wild/",
     },
     "Kilmarnock": {
-        "full":  "Kilmarnock Thunder",
-        "short": "Thunder",
-        "slug":  "kilmarnock-thunder",
-        "logo":  "kilmarnock-thunder.png",
+        "full":    "Kilmarnock Thunder",
+        "short":   "Thunder",
+        "slug":    "kilmarnock-thunder",
+        "logo":    "kilmarnock-thunder.png",
+        "website": "https://www.facebook.com/p/The-Waterwise-Utilities-Kilmarnock-Thunder-100057359233356/",
     },
 }
 
@@ -89,7 +98,7 @@ TEAM_BY_SLUG = {v["slug"]: k for k, v in TEAM_DISPLAY.items()}
 
 # Bump this string whenever you push CSS/JS changes to force Cloudflare to
 # fetch the new file instead of serving a stale cached copy.
-STATIC_VERSION = "20260405-2"
+STATIC_VERSION = "20260405-3"
 
 # Scottish Cup 2025-26 bracket structure.
 # Each round lists matchups; each matchup is a list of event IDs (leg 1, leg 2).

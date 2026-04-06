@@ -1088,3 +1088,18 @@ footer a:hover {
 .th-sortable::after { content: ' ⇅'; opacity: 0.35; font-size: 0.75em; }
 .sort-asc::after  { content: ' ↑'; opacity: 1; }
 .sort-desc::after { content: ' ↓'; opacity: 1; }
+
+/* Club website button on team pages */
+.btn-club-website {
+  display: inline-block;
+  margin-top: 0.5rem;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--accent, #1a6fc4);
+  border-radius: 4px;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+.btn-club-website:hover { background: var(--accent-dark, #1558a0); }
