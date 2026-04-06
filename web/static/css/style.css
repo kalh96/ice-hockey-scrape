@@ -794,6 +794,11 @@ tbody tr:last-child td { border-bottom: none; }
   color: rgba(255,255,255,0.65);
 }
 
+.team-header-info {
+  flex: 1;
+  min-width: 0;
+}
+
 .team-stats-bar {
   display: flex;
   gap: 0;
@@ -1332,6 +1337,7 @@ footer a:hover {
 /* Club website button on team pages */
 .btn-club-website {
   display: inline-block;
+  flex-shrink: 0;
   margin-left: auto;
   padding: 0.35rem 0.9rem;
   font-size: 0.85rem;
