@@ -1075,3 +1075,16 @@ footer a:hover {
   .team-home, .team-away { text-align: center; }
   .score { min-width: unset; }
 }
+
+/* ---------------------------------------------------------------------------
+   Sortable tables
+   --------------------------------------------------------------------------- */
+.th-sortable {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+.th-sortable:hover { background: var(--table-header-bg, #1a3a5c); }
+.th-sortable::after { content: ' ⇅'; opacity: 0.35; font-size: 0.75em; }
+.sort-asc::after  { content: ' ↑'; opacity: 1; }
+.sort-desc::after { content: ' ↓'; opacity: 1; }

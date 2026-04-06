@@ -40,3 +40,57 @@ document.addEventListener('click', e => {
     document.querySelectorAll('.nav-dropdown').forEach(item => item.classList.remove('open'));
   }
 });
+
+// Table sorting
+document.querySelectorAll('table.sortable').forEach(table => {
+  const ths = Array.from(table.querySelectorAll('thead th'));
+  const tbody = table.querySelector('tbody');
+  if (!tbody) return;
+
+  // Index of the rank column to re-number after sort (optional)
+  const rankTh = table.querySelector('thead th[data-sort-rank]');
+  const rankIdx = rankTh ? ths.indexOf(rankTh) : -1;
+
+  ths.forEach((th, colIdx) => {
+    th.classList.add('th-sortable');
+    let dir = 1; // 1 = asc, -1 = desc
+
+    th.addEventListener('click', () => {
+      ths.forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
+
+      const rows = Array.from(tbody.querySelectorAll('tr'));
+
+      rows.sort((a, b) => {
+        const aText = (a.cells[colIdx]?.textContent ?? '').trim();
+        const bText = (b.cells[colIdx]?.textContent ?? '').trim();
+
+        // Dashes (null values) always sort to the bottom
+        const aBlank = aText === '–' || aText === '' || aText === '-';
+        const bBlank = bText === '–' || bText === '' || bText === '-';
+        if (aBlank && bBlank) return 0;
+        if (aBlank) return 1;
+        if (bBlank) return -1;
+
+        // Numeric sort (handles +5, 0.923, plain integers)
+        const aNum = parseFloat(aText.replace(/^\+/, ''));
+        const bNum = parseFloat(bText.replace(/^\+/, ''));
+        if (!isNaN(aNum) && !isNaN(bNum)) return dir * (aNum - bNum);
+
+        // Fallback: alphabetical
+        return dir * aText.localeCompare(bText);
+      });
+
+      rows.forEach(row => tbody.appendChild(row));
+
+      // Re-number rank column if present
+      if (rankIdx >= 0) {
+        tbody.querySelectorAll('tr').forEach((row, i) => {
+          if (row.cells[rankIdx]) row.cells[rankIdx].textContent = i + 1;
+        });
+      }
+
+      th.classList.add(dir === 1 ? 'sort-asc' : 'sort-desc');
+      dir = -dir;
+    });
+  });
+});
