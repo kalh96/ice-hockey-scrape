@@ -108,9 +108,67 @@ def get_all_fixtures(comp_name="all", season=CURRENT_SEASON):
         conn.close()
 
 
+def _skater_stats_from_events(conn, comp_name, season):
+    """Aggregate skater stats from event_player_stats (used for competitions
+    with no dedicated SIHA stats page, e.g. SNL Play-offs)."""
+    rows = conn.execute(
+        """
+        SELECT p.name AS player_name, t.name AS team_name,
+               eps.position,
+               COUNT(DISTINCT eps.event_id) AS gp,
+               SUM(eps.goals)                AS goals,
+               SUM(eps.assists)              AS assists,
+               SUM(eps.goals + eps.assists)  AS total_points,
+               SUM(eps.pim)                  AS pim
+        FROM event_player_stats eps
+        JOIN players p      ON p.id = eps.player_id
+        JOIN teams t        ON t.id = eps.team_id
+        JOIN fixtures f     ON f.event_id = eps.event_id
+        JOIN competitions c ON c.id = f.competition_id
+        WHERE c.name = ? AND f.season = ? AND eps.position != 'GK'
+        GROUP BY eps.player_id, eps.team_id
+        ORDER BY total_points DESC, goals DESC, assists DESC
+        """,
+        (comp_name, season),
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def _netminder_stats_from_events(conn, comp_name, season):
+    """Aggregate netminder stats from event_player_stats."""
+    rows = conn.execute(
+        """
+        SELECT p.name AS player_name, t.name AS team_name,
+               COUNT(DISTINCT eps.event_id) AS gp,
+               SUM(eps.shots_against)       AS shots_against,
+               SUM(eps.saves)               AS saves,
+               SUM(eps.goals_against)       AS goals_against,
+               CASE WHEN SUM(eps.shots_against) > 0
+                    THEN CAST(SUM(eps.saves) AS REAL) / SUM(eps.shots_against)
+                    ELSE NULL END            AS save_pct,
+               NULL                         AS gaa,
+               NULL                         AS toi
+        FROM event_player_stats eps
+        JOIN players p      ON p.id = eps.player_id
+        JOIN teams t        ON t.id = eps.team_id
+        JOIN fixtures f     ON f.event_id = eps.event_id
+        JOIN competitions c ON c.id = f.competition_id
+        WHERE c.name = ? AND f.season = ? AND eps.position = 'GK'
+        GROUP BY eps.player_id, eps.team_id
+        ORDER BY save_pct DESC
+        """,
+        (comp_name, season),
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
 def get_skater_stats(comp_name="SNL", season=CURRENT_SEASON):
     conn = get_connection()
     try:
+        # Competitions without a dedicated SIHA stats page are aggregated
+        # directly from individual game events.
+        if comp_name == "SNL Play-offs":
+            return _skater_stats_from_events(conn, comp_name, season)
         rows = conn.execute(
             """
             SELECT p.name AS player_name, t.name AS team_name,
@@ -132,6 +190,8 @@ def get_skater_stats(comp_name="SNL", season=CURRENT_SEASON):
 def get_netminder_stats(comp_name="SNL", season=CURRENT_SEASON):
     conn = get_connection()
     try:
+        if comp_name == "SNL Play-offs":
+            return _netminder_stats_from_events(conn, comp_name, season)
         rows = conn.execute(
             """
             SELECT p.name AS player_name, t.name AS team_name,
@@ -224,6 +284,7 @@ def get_team_standings_row(db_name, comp_name="SNL", season=CURRENT_SEASON):
 def get_team_skater_stats(db_name, season=CURRENT_SEASON):
     conn = get_connection()
     try:
+        # Stats from dedicated season stats pages (SNL, Scottish Cup)
         rows = conn.execute(
             """
             SELECT p.name AS player_name,
@@ -238,7 +299,32 @@ def get_team_skater_stats(db_name, season=CURRENT_SEASON):
             """,
             (db_name, season),
         ).fetchall()
-        return [dict(r) for r in rows]
+        results = [dict(r) for r in rows]
+
+        # Stats aggregated from game events for SNL Play-offs
+        playoff_rows = conn.execute(
+            """
+            SELECT p.name AS player_name, eps.position,
+                   COUNT(DISTINCT eps.event_id) AS gp,
+                   SUM(eps.goals)               AS goals,
+                   SUM(eps.assists)             AS assists,
+                   SUM(eps.goals + eps.assists) AS total_points,
+                   SUM(eps.pim)                 AS pim,
+                   'SNL Play-offs'              AS competition
+            FROM event_player_stats eps
+            JOIN players p      ON p.id = eps.player_id
+            JOIN teams t        ON t.id = eps.team_id
+            JOIN fixtures f     ON f.event_id = eps.event_id
+            JOIN competitions c ON c.id = f.competition_id
+            WHERE t.name = ? AND f.season = ?
+              AND c.name = 'SNL Play-offs' AND eps.position != 'GK'
+            GROUP BY eps.player_id
+            ORDER BY total_points DESC, goals DESC
+            """,
+            (db_name, season),
+        ).fetchall()
+        results += [dict(r) for r in playoff_rows]
+        return results
     finally:
         conn.close()
 
@@ -261,7 +347,36 @@ def get_team_netminder_stats(db_name, season=CURRENT_SEASON):
             """,
             (db_name, season),
         ).fetchall()
-        return [dict(r) for r in rows]
+        results = [dict(r) for r in rows]
+
+        # Netminder stats from game events for SNL Play-offs
+        playoff_rows = conn.execute(
+            """
+            SELECT p.name AS player_name,
+                   COUNT(DISTINCT eps.event_id) AS gp,
+                   SUM(eps.shots_against)       AS shots_against,
+                   SUM(eps.saves)               AS saves,
+                   SUM(eps.goals_against)       AS goals_against,
+                   CASE WHEN SUM(eps.shots_against) > 0
+                        THEN CAST(SUM(eps.saves) AS REAL) / SUM(eps.shots_against)
+                        ELSE NULL END            AS save_pct,
+                   NULL                         AS gaa,
+                   NULL                         AS toi,
+                   'SNL Play-offs'              AS competition
+            FROM event_player_stats eps
+            JOIN players p      ON p.id = eps.player_id
+            JOIN teams t        ON t.id = eps.team_id
+            JOIN fixtures f     ON f.event_id = eps.event_id
+            JOIN competitions c ON c.id = f.competition_id
+            WHERE t.name = ? AND f.season = ?
+              AND c.name = 'SNL Play-offs' AND eps.position = 'GK'
+            GROUP BY eps.player_id
+            ORDER BY save_pct DESC
+            """,
+            (db_name, season),
+        ).fetchall()
+        results += [dict(r) for r in playoff_rows]
+        return results
     finally:
         conn.close()
 
