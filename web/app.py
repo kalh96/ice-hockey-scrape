@@ -49,6 +49,12 @@ def team_logo_filter(db_name):
     return TEAM_DISPLAY.get(db_name, {}).get("logo", "")
 
 
+@app.template_filter("eihl_logo")
+def eihl_logo_filter(db_name):
+    """EIHL DB team name → logo filename (e.g. 'Belfast Giants' → 'belfast-giants.png')."""
+    return EIHL_TEAM_DISPLAY.get(db_name, {}).get("logo", "")
+
+
 # ---------------------------------------------------------------------------
 # Win probability model
 # ---------------------------------------------------------------------------
@@ -335,10 +341,15 @@ def _load_article(slug):
 
 @app.context_processor
 def inject_globals():
+    from flask import request as _req
+    endpoint = _req.endpoint or ""
+    league_ctx = "eihl" if endpoint.startswith("eihl") else "snl"
     return {
         "current_year": date.today().year,
         "team_display": TEAM_DISPLAY,
         "static_version": STATIC_VERSION,
+        "league_ctx": league_ctx,
+        "eihl_team_display": EIHL_TEAM_DISPLAY,
     }
 
 

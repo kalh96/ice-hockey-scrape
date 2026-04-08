@@ -54,7 +54,7 @@ def _parse_standings_table(table, competition: str, season: str,
         if not cells or len(cells) < 4:
             continue
 
-        # Team name: find the longest non-numeric cell (usually the team column)
+        # Team name: find the first non-numeric, non-trivial cell
         team_name = None
         for cell in cells:
             if cell and not re.match(r"^[\d.\-%]+$", cell) and len(cell) > 2:
@@ -63,12 +63,22 @@ def _parse_standings_table(table, competition: str, season: str,
         if not team_name:
             continue
 
+        # Strip position+qualifier prefix: "1c - Belfast Giants" → "Belfast Giants" (qualifier="c")
+        # Format: optional_digits + optional_letter + optional_separator + team_name
+        qualifier = None
+        qm = re.match(r"^\d+([cx])?\s*[-–]\s*(.+)$", team_name, re.IGNORECASE)
+        if qm:
+            q = qm.group(1)
+            qualifier = q.lower() if q else None
+            team_name = qm.group(2).strip()
+
         pos += 1
         rows.append({
             "season":      season,
             "competition": competition,
             "group_name":  group_name,
             "team":        team_name,
+            "qualifier":   qualifier,
             "pos":         _int(_col("POS", cells)) or pos,
             "gp":          _int(_col("GP", cells)),
             "pts":         _int(_col("PTS", cells)),

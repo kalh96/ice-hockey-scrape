@@ -5,7 +5,14 @@
 
 {# Score header #}
 <div class="event-header">
-  <div class="event-team">{{ fixture.home_team }}</div>
+  <div class="event-team">
+    {% set home_logo = fixture.home_team | eihl_logo %}
+    {% if home_logo %}
+      <img src="{{ url_for('static', filename='img/eihl/' + home_logo) }}?v={{ static_version }}"
+           alt="{{ fixture.home_team }}" class="team-logo-lg" onerror="this.style.display='none'">
+    {% endif %}
+    {{ fixture.home_team }}
+  </div>
   <div class="event-score">
     {% if fixture.status != 'scheduled' %}
       <span class="score-main">{{ fixture.home_score }} – {{ fixture.away_score }}</span>
@@ -17,7 +24,14 @@
     {% if fixture.venue %}<div class="meta">{{ fixture.venue }}</div>{% endif %}
     {% if fixture.attendance %}<div class="meta">Attendance: {{ fixture.attendance }}</div>{% endif %}
   </div>
-  <div class="event-team">{{ fixture.away_team }}</div>
+  <div class="event-team">
+    {% set away_logo = fixture.away_team | eihl_logo %}
+    {% if away_logo %}
+      <img src="{{ url_for('static', filename='img/eihl/' + away_logo) }}?v={{ static_version }}"
+           alt="{{ fixture.away_team }}" class="team-logo-lg" onerror="this.style.display='none'">
+    {% endif %}
+    {{ fixture.away_team }}
+  </div>
 </div>
 
 {# Period scores #}

@@ -111,23 +111,23 @@ EIHL_COMP_LABELS = {
 }
 
 # Maps DB team name → display info for the 10 EIHL teams.
-# Logos can be added later (place PNGs in web/static/img/eihl/).
+# Place logo PNGs in web/static/img/eihl/ matching the logo filename below.
 EIHL_TEAM_DISPLAY = {
-    "Belfast Giants":      {"full": "Belfast Giants",      "short": "Giants",   "slug": "belfast-giants"},
-    "Cardiff Devils":      {"full": "Cardiff Devils",      "short": "Devils",   "slug": "cardiff-devils"},
-    "Coventry Blaze":      {"full": "Coventry Blaze",      "short": "Blaze",    "slug": "coventry-blaze"},
-    "Dundee Stars":        {"full": "Dundee Stars",        "short": "Stars",    "slug": "dundee-stars"},
-    "Fife Flyers":         {"full": "Fife Flyers",         "short": "Flyers",   "slug": "fife-flyers"},
-    "Glasgow Clan":        {"full": "Glasgow Clan",        "short": "Clan",     "slug": "glasgow-clan"},
-    "Guildford Flames":    {"full": "Guildford Flames",    "short": "Flames",   "slug": "guildford-flames"},
-    "Manchester Storm":    {"full": "Manchester Storm",    "short": "Storm",    "slug": "manchester-storm"},
-    "Nottingham Panthers": {"full": "Nottingham Panthers", "short": "Panthers", "slug": "nottingham-panthers"},
-    "Sheffield Steelers":  {"full": "Sheffield Steelers",  "short": "Steelers", "slug": "sheffield-steelers"},
+    "Belfast Giants":      {"full": "Belfast Giants",      "short": "Giants",   "slug": "belfast-giants",      "logo": "belfast-giants.png"},
+    "Cardiff Devils":      {"full": "Cardiff Devils",      "short": "Devils",   "slug": "cardiff-devils",      "logo": "cardiff-devils.png"},
+    "Coventry Blaze":      {"full": "Coventry Blaze",      "short": "Blaze",    "slug": "coventry-blaze",      "logo": "coventry-blaze.png"},
+    "Dundee Stars":        {"full": "Dundee Stars",        "short": "Stars",    "slug": "dundee-stars",        "logo": "dundee-stars.png"},
+    "Fife Flyers":         {"full": "Fife Flyers",         "short": "Flyers",   "slug": "fife-flyers",         "logo": "fife-flyers.png"},
+    "Glasgow Clan":        {"full": "Glasgow Clan",        "short": "Clan",     "slug": "glasgow-clan",        "logo": "glasgow-clan.png"},
+    "Guildford Flames":    {"full": "Guildford Flames",    "short": "Flames",   "slug": "guildford-flames",    "logo": "guildford-flames.png"},
+    "Manchester Storm":    {"full": "Manchester Storm",    "short": "Storm",    "slug": "manchester-storm",    "logo": "manchester-storm.png"},
+    "Nottingham Panthers": {"full": "Nottingham Panthers", "short": "Panthers", "slug": "nottingham-panthers", "logo": "nottingham-panthers.png"},
+    "Sheffield Steelers":  {"full": "Sheffield Steelers",  "short": "Steelers", "slug": "sheffield-steelers",  "logo": "sheffield-steelers.png"},
 }
 
 # Bump this string whenever you push CSS/JS changes to force Cloudflare to
 # fetch the new file instead of serving a stale cached copy.
-STATIC_VERSION = "20260408-1"
+STATIC_VERSION = "20260408-2"
 
 # Scottish Cup 2025-26 bracket structure.
 # Each round lists matchups; each matchup is a list of event IDs (leg 1, leg 2).

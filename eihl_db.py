@@ -94,6 +94,7 @@ def init_eihl_schema(conn: sqlite3.Connection) -> None:
             competition TEXT NOT NULL,      -- 'League' or 'Cup'
             group_name  TEXT,              -- NULL for League; 'A' or 'B' for Cup
             team        TEXT NOT NULL,
+            qualifier   TEXT,              -- 'c' = champion, 'x' = playoff-qualified, NULL = neither
             pos         INTEGER,
             gp          INTEGER,
             pts         INTEGER,
@@ -155,6 +156,16 @@ def init_eihl_schema(conn: sqlite3.Connection) -> None:
         );
     """)
     conn.commit()
+
+    # Migrations: add columns that didn't exist in the initial schema
+    _add_column_if_missing(conn, "eihl_standings", "qualifier", "TEXT")
+
+
+def _add_column_if_missing(conn: sqlite3.Connection, table: str, column: str, col_type: str) -> None:
+    existing = {row[1] for row in conn.execute(f"PRAGMA table_info({table})")}
+    if column not in existing:
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}")
+        conn.commit()
 
 
 # ---------------------------------------------------------------------------
@@ -261,10 +272,11 @@ def upsert_standing(conn: sqlite3.Connection, **kw) -> None:
     conn.execute(
         """
         INSERT INTO eihl_standings
-            (season, competition, group_name, team, pos, gp, pts, w, otw, l, otl, gf, ga, scraped_at)
+            (season, competition, group_name, team, qualifier, pos, gp, pts, w, otw, l, otl, gf, ga, scraped_at)
         VALUES
-            (:season, :competition, :group_name, :team, :pos, :gp, :pts, :w, :otw, :l, :otl, :gf, :ga, :scraped_at)
+            (:season, :competition, :group_name, :team, :qualifier, :pos, :gp, :pts, :w, :otw, :l, :otl, :gf, :ga, :scraped_at)
         ON CONFLICT(season, competition, group_name, team) DO UPDATE SET
+            qualifier  = excluded.qualifier,
             pos        = excluded.pos,
             gp         = excluded.gp,
             pts        = excluded.pts,

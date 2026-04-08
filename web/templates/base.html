@@ -26,19 +26,48 @@
              class="{{ 'active' if request.endpoint == 'home' else '' }}">Home</a></li>
       <li><a href="{{ url_for('articles_list') }}"
              class="{{ 'active' if request.endpoint in ('articles_list', 'article_detail') else '' }}">Articles</a></li>
-      <li><a href="{{ url_for('statistics') }}"
-             class="{{ 'active' if request.endpoint in ('statistics', 'stats_skaters', 'stats_netminders') else '' }}">Statistics</a></li>
-      <li><a href="{{ url_for('fixtures') }}"
-             class="{{ 'active' if request.endpoint in ('fixtures', 'event_detail') else '' }}">Fixtures</a></li>
-      <li class="nav-dropdown">
-        <a href="{{ url_for('teams_list') }}"
-           class="{{ 'active' if request.endpoint in ('teams_list', 'team_detail') else '' }}">Teams</a>
-        <ul class="dropdown-menu">
-          {% for db_name, info in team_display.items() %}
-            <li><a href="{{ url_for('team_detail', slug=info.slug) }}">{{ info.full }}</a></li>
-          {% endfor %}
-        </ul>
-      </li>
+
+      {# Statistics link — context-aware #}
+      {% if league_ctx == 'eihl' %}
+        <li><a href="{{ url_for('eihl_statistics') }}"
+               class="{{ 'active' if request.endpoint in ('eihl_statistics', 'eihl_stats_skaters', 'eihl_stats_goalies') else '' }}">Statistics</a></li>
+      {% else %}
+        <li><a href="{{ url_for('statistics') }}"
+               class="{{ 'active' if request.endpoint in ('statistics', 'stats_skaters', 'stats_netminders') else '' }}">Statistics</a></li>
+      {% endif %}
+
+      {# Fixtures link — context-aware #}
+      {% if league_ctx == 'eihl' %}
+        <li><a href="{{ url_for('eihl_fixtures') }}"
+               class="{{ 'active' if request.endpoint in ('eihl_fixtures', 'eihl_game_detail') else '' }}">Fixtures</a></li>
+      {% else %}
+        <li><a href="{{ url_for('fixtures') }}"
+               class="{{ 'active' if request.endpoint in ('fixtures', 'event_detail') else '' }}">Fixtures</a></li>
+      {% endif %}
+
+      {# Teams dropdown — context-aware #}
+      {% if league_ctx == 'eihl' %}
+        <li class="nav-dropdown">
+          <a href="{{ url_for('eihl_overview') }}"
+             class="{{ 'active' if request.endpoint in ('eihl_overview',) else '' }}">Teams</a>
+          <ul class="dropdown-menu">
+            {% for db_name, info in eihl_team_display.items() %}
+              <li><a href="{{ url_for('eihl_overview') }}">{{ info.full }}</a></li>
+            {% endfor %}
+          </ul>
+        </li>
+      {% else %}
+        <li class="nav-dropdown">
+          <a href="{{ url_for('teams_list') }}"
+             class="{{ 'active' if request.endpoint in ('teams_list', 'team_detail') else '' }}">Teams</a>
+          <ul class="dropdown-menu">
+            {% for db_name, info in team_display.items() %}
+              <li><a href="{{ url_for('team_detail', slug=info.slug) }}">{{ info.full }}</a></li>
+            {% endfor %}
+          </ul>
+        </li>
+      {% endif %}
+
       <li class="nav-dropdown">
         <a href="{{ url_for('eihl_overview') }}"
            class="{{ 'active' if request.endpoint and request.endpoint.startswith('eihl') else '' }}">UK Hockey</a>

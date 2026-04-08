@@ -64,12 +64,7 @@ def run_fixtures_pass(conn: sqlite3.Connection) -> None:
     logger.info("=== FIXTURES PASS ===")
 
     for competition, url in [("League", SCHEDULE_URL_LEAGUE), ("Cup", SCHEDULE_URL_CUP)]:
-        soup = get_soup(url)
-        if soup is None:
-            logger.error("[%s] Failed to fetch schedule page %s", competition, url)
-            continue
-
-        fixtures = fixtures_mod.parse_schedule_page(soup, competition, CURRENT_SEASON)
+        fixtures = fixtures_mod.scrape_all_months(get_soup, url, competition, CURRENT_SEASON)
         for f in fixtures:
             eihl_db.upsert_fixture(conn, **f)
         conn.commit()
