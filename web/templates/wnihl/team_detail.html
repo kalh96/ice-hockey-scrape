@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}{{ team_name }} – {{ comp_labels[competition] }} – Scottish Ice Hockey News{% endblock %}
+{% block meta_description %}Fixtures, results and statistics for {{ team_name }} in {{ comp_labels[competition] }}.{% endblock %}
+
+{% block content %}
+
+<div class="team-header">
+  <div class="team-header-info">
+    <h1 class="team-header-name">{{ team_name }}</h1>
+    <div class="text-muted">{{ comp_labels[competition] }}</div>
+  </div>
+</div>
+
+{# Full competition standings with team highlighted #}
+{% if standings %}
+  <h2 class="section-title mt-2">{{ comp_labels[competition] }} Table</h2>
+  <div class="table-scroll">
+  <table class="standings-table">
+    <thead>
+      <tr>
+        <th>#</th><th class="team-col">Team</th>
+        <th>P</th><th>W</th><th>D</th><th>L</th>
+        <th>GF</th><th>GA</th><th>GD</th><th>PTS</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in standings %}
+        <tr class="{{ 'standings-highlight' if row.team == team_name else '' }}">
+          <td>{{ row.pos }}</td>
+          <td class="team-col">
+            {% if row.team != team_name %}
+              <a href="{{ url_for('wnihl_team_detail', slug=row.team | wnihl_slug) }}" class="team-name-link">{{ row.team }}</a>
+            {% else %}
+              {{ row.team }}
+            {% endif %}
+          </td>
+          <td>{{ row.gp }}</td>
+          <td>{{ row.w }}</td>
+          <td>{{ row.d or 0 }}</td>
+          <td>{{ row.l }}</td>
+          <td>{{ row.gf }}</td>
+          <td>{{ row.ga }}</td>
+          <td>{{ (row.gf or 0) - (row.ga or 0) }}</td>
+          <td><strong>{{ row.pts }}</strong></td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+{% endif %}
+
+<div class="two-col-layout mt-2">
+
+  <div class="two-col-main">
+
+    {% if upcoming %}
+      <h2 class="section-title">Upcoming Fixtures</h2>
+      <div class="result-list">
+        {% for f in upcoming %}
+          <div class="result-card">
+            <div class="team-home {{ 'team-highlight' if f.home_team == team_name else '' }}">{{ f.home_team }}</div>
+            <div class="result-card-centre">
+              <div class="score upcoming-score">vs</div>
+              {% if f.date %}<div class="meta">{{ f.date[:10] }}</div>{% endif %}
+            </div>
+            <div class="team-away {{ 'team-highlight' if f.away_team == team_name else '' }}">{{ f.away_team }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% if results %}
+      <h2 class="section-title {{ 'mt-2' if upcoming else '' }}">Results</h2>
+      <div class="result-list">
+        {% for f in results | reverse %}
+          <div class="result-card">
+            <div class="team-home {{ 'team-highlight' if f.home_team == team_name else '' }}">{{ f.home_team }}</div>
+            <div class="result-card-centre">
+              <div class="score">{{ f.home_score }} – {{ f.away_score }}</div>
+              {% if f.date %}<div class="meta">{{ f.date[:10] }}</div>{% endif %}
+            </div>
+            <div class="team-away {{ 'team-highlight' if f.away_team == team_name else '' }}">{{ f.away_team }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% if not results and not upcoming %}
+      <p class="no-data">No fixture data found for this team.</p>
+    {% endif %}
+
+  </div>
+
+  {% if players %}
+  <div class="two-col-sidebar">
+    <h2 class="section-title">Players</h2>
+    <table class="stats-table">
+      <thead>
+        <tr>
+          <th class="player-col">Player</th>
+          <th>GP</th><th>G</th><th>A</th><th>PTS</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in players %}
+          <tr>
+            <td class="player-col">{{ p.player_name }}</td>
+            <td>{{ p.games }}</td>
+            <td>{{ p.goals }}</td>
+            <td>{{ p.assists }}</td>
+            <td><strong>{{ p.points }}</strong></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

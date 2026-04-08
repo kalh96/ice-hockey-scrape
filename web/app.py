@@ -63,6 +63,12 @@ def eihl_slug_filter(db_name):
     return EIHL_TEAM_DISPLAY.get(db_name, {}).get("slug", "")
 
 
+@app.template_filter("wnihl_slug")
+def wnihl_slug_filter(team_name):
+    """WNIHL team name → URL slug (e.g. 'Queen Bees' → 'queen-bees')."""
+    return wnihl_queries.slugify(team_name)
+
+
 # ---------------------------------------------------------------------------
 # Win probability model
 # ---------------------------------------------------------------------------
@@ -365,12 +371,24 @@ def inject_globals():
     elif endpoint.startswith("wnihl"):
         league_ctx = "wnihl"
         session["league_ctx"] = "wnihl"
+        # Track which WNIHL competition was last viewed for the nav teams list
+        wnihl_comp = _req.args.get("comp") or session.get("wnihl_comp", "Elite")
+        session["wnihl_comp"] = wnihl_comp
     elif endpoint in _SNL_ENDPOINTS:
         league_ctx = "snl"
         session["league_ctx"] = "snl"
     else:
         # Generic pages (home, articles, about) — preserve the last league visited
         league_ctx = session.get("league_ctx", "snl")
+
+    # For WNIHL nav: fetch the team list for the currently active competition
+    wnihl_nav_teams = []
+    if league_ctx == "wnihl":
+        wnihl_comp = session.get("wnihl_comp", "Elite")
+        try:
+            wnihl_nav_teams = wnihl_queries.get_wnihl_teams_for_nav(wnihl_comp, WNIHL_CURRENT_SEASON)
+        except Exception:
+            wnihl_nav_teams = []
 
     return {
         "current_year": date.today().year,
@@ -379,6 +397,7 @@ def inject_globals():
         "league_ctx": league_ctx,
         "eihl_team_display": EIHL_TEAM_DISPLAY,
         "wnihl_comp_labels": WNIHL_COMP_LABELS,
+        "wnihl_nav_teams": wnihl_nav_teams,
     }
 
 
@@ -876,6 +895,27 @@ def wnihl_teams():
         comp_labels=WNIHL_COMP_LABELS,
         season=season, seasons=WNIHL_SEASONS,
         standings=standings,
+    )
+
+
+@app.route("/uk-hockey/wnihl/teams/<slug>/")
+def wnihl_team_detail(slug):
+    info = wnihl_queries.get_wnihl_team_by_slug(slug, season=WNIHL_CURRENT_SEASON)
+    if not info:
+        abort(404)
+    team_name   = info["team"]
+    competition = info["competition"]
+    all_fx      = wnihl_queries.get_wnihl_team_fixtures(team_name, season=WNIHL_CURRENT_SEASON)
+    upcoming    = [f for f in all_fx if f["status"] == "scheduled"]
+    results     = [f for f in all_fx if f["status"] != "scheduled"]
+    standings   = wnihl_queries.get_wnihl_standings(competition, season=WNIHL_CURRENT_SEASON)
+    players     = wnihl_queries.get_wnihl_team_players(team_name, competition, season=WNIHL_CURRENT_SEASON)
+    return render_template(
+        "wnihl/team_detail.html",
+        team_name=team_name, competition=competition, slug=slug,
+        comp_labels=WNIHL_COMP_LABELS,
+        upcoming=upcoming, results=results,
+        standings=standings, players=players,
     )
 
 

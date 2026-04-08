@@ -38,7 +38,9 @@
       {% for row in standings %}
         <tr>
           <td>{{ row.pos }}</td>
-          <td class="team-col">{{ row.team }}</td>
+          <td class="team-col">
+            <a href="{{ url_for('wnihl_team_detail', slug=row.team | wnihl_slug) }}" class="team-name-link">{{ row.team }}</a>
+          </td>
           <td>{{ row.gp }}</td>
           <td>{{ row.w }}</td>
           <td>{{ row.d }}</td>

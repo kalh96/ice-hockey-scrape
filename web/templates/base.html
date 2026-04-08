@@ -65,11 +65,11 @@
       {% elif league_ctx == 'wnihl' %}
         <li class="nav-dropdown">
           <a href="{{ url_for('wnihl_teams') }}"
-             class="{{ 'active' if request.endpoint == 'wnihl_teams' else '' }}">Teams</a>
+             class="{{ 'active' if request.endpoint in ('wnihl_teams', 'wnihl_team_detail') else '' }}">Teams</a>
           <ul class="dropdown-menu">
-            <li><a href="{{ url_for('wnihl_teams', comp='Elite') }}">Elite Teams</a></li>
-            <li><a href="{{ url_for('wnihl_teams', comp='1 North') }}">1 North Teams</a></li>
-            <li><a href="{{ url_for('wnihl_teams', comp='1 South') }}">1 South Teams</a></li>
+            {% for t in wnihl_nav_teams %}
+              <li><a href="{{ url_for('wnihl_team_detail', slug=t.slug) }}">{{ t.team }}</a></li>
+            {% endfor %}
           </ul>
         </li>
       {% else %}
