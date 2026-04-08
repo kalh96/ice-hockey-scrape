@@ -31,6 +31,9 @@
       {% if league_ctx == 'eihl' %}
         <li><a href="{{ url_for('eihl_statistics') }}"
                class="{{ 'active' if request.endpoint in ('eihl_statistics', 'eihl_stats_skaters', 'eihl_stats_goalies') else '' }}">Statistics</a></li>
+      {% elif league_ctx == 'wnihl' %}
+        <li><a href="{{ url_for('wnihl_statistics') }}"
+               class="{{ 'active' if request.endpoint == 'wnihl_statistics' else '' }}">Statistics</a></li>
       {% else %}
         <li><a href="{{ url_for('statistics') }}"
                class="{{ 'active' if request.endpoint in ('statistics', 'stats_skaters', 'stats_netminders') else '' }}">Statistics</a></li>
@@ -40,6 +43,9 @@
       {% if league_ctx == 'eihl' %}
         <li><a href="{{ url_for('eihl_fixtures') }}"
                class="{{ 'active' if request.endpoint in ('eihl_fixtures', 'eihl_game_detail') else '' }}">Fixtures</a></li>
+      {% elif league_ctx == 'wnihl' %}
+        <li><a href="{{ url_for('wnihl_fixtures') }}"
+               class="{{ 'active' if request.endpoint == 'wnihl_fixtures' else '' }}">Fixtures</a></li>
       {% else %}
         <li><a href="{{ url_for('fixtures') }}"
                class="{{ 'active' if request.endpoint in ('fixtures', 'event_detail') else '' }}">Fixtures</a></li>
@@ -49,10 +55,20 @@
       {% if league_ctx == 'eihl' %}
         <li class="nav-dropdown">
           <a href="{{ url_for('eihl_overview') }}"
-             class="{{ 'active' if request.endpoint in ('eihl_overview',) else '' }}">Teams</a>
+             class="{{ 'active' if request.endpoint == 'eihl_overview' else '' }}">Teams</a>
           <ul class="dropdown-menu">
             {% for db_name, info in eihl_team_display.items() %}
               <li><a href="{{ url_for('eihl_overview') }}">{{ info.full }}</a></li>
+            {% endfor %}
+          </ul>
+        </li>
+      {% elif league_ctx == 'wnihl' %}
+        <li class="nav-dropdown">
+          <a href="{{ url_for('wnihl_standings') }}"
+             class="{{ 'active' if request.endpoint == 'wnihl_standings' else '' }}">Standings</a>
+          <ul class="dropdown-menu">
+            {% for c, label in wnihl_comp_labels.items() %}
+              <li><a href="{{ url_for('wnihl_standings', comp=c) }}">{{ label }}</a></li>
             {% endfor %}
           </ul>
         </li>
@@ -70,12 +86,12 @@
 
       <li class="nav-dropdown">
         <a href="{{ url_for('eihl_overview') }}"
-           class="{{ 'active' if request.endpoint and request.endpoint.startswith('eihl') else '' }}">UK Hockey</a>
+           class="{{ 'active' if request.endpoint and (request.endpoint.startswith('eihl') or request.endpoint.startswith('wnihl')) else '' }}">UK Hockey</a>
         <ul class="dropdown-menu">
           <li><a href="{{ url_for('eihl_overview') }}">Elite Ice Hockey League</a></li>
-          <li class="dropdown-disabled"><span>WNIHL Elite</span></li>
-          <li class="dropdown-disabled"><span>WNIHL 1 North</span></li>
-          <li class="dropdown-disabled"><span>WNIHL 1 South</span></li>
+          <li><a href="{{ url_for('wnihl_overview', comp='Elite') }}">WNIHL Elite</a></li>
+          <li><a href="{{ url_for('wnihl_overview', comp='1 North') }}">WNIHL 1 North</a></li>
+          <li><a href="{{ url_for('wnihl_overview', comp='1 South') }}">WNIHL 1 South</a></li>
         </ul>
       </li>
       <li><a href="{{ url_for('about') }}"

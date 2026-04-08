@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}WNIHL Standings – Scottish Ice Hockey News{% endblock %}
+
+{% block content %}
+<h1 class="page-title">WNIHL Standings</h1>
+
+<div class="comp-tabs">
+  {% for c in competitions %}
+    <a href="{{ url_for('wnihl_standings', comp=c, season=season) }}"
+       class="comp-tab {{ 'active' if c == comp else '' }}">
+      {{ comp_labels[c] }}
+    </a>
+  {% endfor %}
+</div>
+
+{% if seasons | length > 1 %}
+<div class="season-selector">
+  <span class="season-label">Season:</span>
+  {% for s in seasons %}
+    <a href="{{ url_for('wnihl_standings', comp=comp, season=s) }}"
+       class="season-tab {{ 'active' if s == season else '' }}">{{ s }}</a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if standings %}
+<div class="table-scroll">
+<table class="standings-table sortable">
+  <thead>
+    <tr>
+      <th data-sort-rank="1">#</th>
+      <th class="team-col">Team</th>
+      <th>P</th><th>W</th><th>D</th><th>L</th>
+      <th>GF</th><th>GA</th><th>GD</th><th>PTS</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in standings %}
+    <tr>
+      <td>{{ row.pos }}</td>
+      <td class="team-col">{{ row.team }}</td>
+      <td>{{ row.gp }}</td>
+      <td>{{ row.w }}</td>
+      <td>{{ row.d or 0 }}</td>
+      <td>{{ row.l }}</td>
+      <td>{{ row.gf }}</td>
+      <td>{{ row.ga }}</td>
+      <td>{{ (row.gf or 0) - (row.ga or 0) }}</td>
+      <td><strong>{{ row.pts }}</strong></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+<p class="standings-key">Points: Win = 2, Draw = 1, Loss = 0</p>
+{% else %}
+  <p class="no-data">No standings data available. Run the WNIHL scraper first.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}WNIHL Fixtures & Results – Scottish Ice Hockey News{% endblock %}
+
+{% block content %}
+<h1 class="page-title">WNIHL Fixtures &amp; Results</h1>
+
+<div class="comp-tabs">
+  {% for c in competitions %}
+    <a href="{{ url_for('wnihl_fixtures', comp=c, season=season) }}"
+       class="comp-tab {{ 'active' if c == comp else '' }}">
+      {{ comp_labels.get(c, 'All') if c != 'all' else 'All Competitions' }}
+    </a>
+  {% endfor %}
+</div>
+
+{% if seasons | length > 1 %}
+<div class="season-selector">
+  <span class="season-label">Season:</span>
+  {% for s in seasons %}
+    <a href="{{ url_for('wnihl_fixtures', comp=comp, season=s) }}"
+       class="season-tab {{ 'active' if s == season else '' }}">{{ s }}</a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if upcoming %}
+<h2 class="section-title">Upcoming Fixtures</h2>
+<div class="result-list">
+  {% for f in upcoming %}
+    <div class="result-card">
+      <div class="team-home">{{ f.home_team }}</div>
+      <div class="result-card-centre">
+        <div class="score upcoming-score">vs</div>
+        {% if f.date %}<div class="meta">{{ f.date[:10] }}</div>{% endif %}
+        {% if f.venue %}<div class="meta">{{ f.venue }}</div>{% endif %}
+        {% if f.round %}<div class="meta"><span class="badge">Rd {{ f.round }}</span></div>{% endif %}
+        {% if comp == 'all' %}<div class="meta"><span class="badge">{{ comp_labels.get(f.competition, f.competition) }}</span></div>{% endif %}
+      </div>
+      <div class="team-away">{{ f.away_team }}</div>
+    </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if results %}
+<h2 class="section-title mt-2">Results</h2>
+<div class="result-list">
+  {% for f in results | reverse %}
+    <div class="result-card">
+      <div class="team-home">{{ f.home_team }}</div>
+      <div class="result-card-centre">
+        <div class="score">{{ f.home_score }} – {{ f.away_score }}</div>
+        {% if f.date %}<div class="meta">{{ f.date[:10] }}</div>{% endif %}
+        {% if f.round %}<div class="meta"><span class="badge">Rd {{ f.round }}</span></div>{% endif %}
+        {% if comp == 'all' %}<div class="meta"><span class="badge">{{ comp_labels.get(f.competition, f.competition) }}</span></div>{% endif %}
+      </div>
+      <div class="team-away">{{ f.away_team }}</div>
+    </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if not upcoming and not results %}
+  <p class="no-data">No fixtures available. Run the WNIHL scraper to populate data.</p>
+{% endif %}
+{% endblock %}

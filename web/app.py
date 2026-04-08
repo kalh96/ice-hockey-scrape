@@ -10,11 +10,13 @@ from flask import Flask, abort, redirect, render_template, request, url_for
 
 import db_queries
 import eihl_queries
+import wnihl_queries
 from config import (
     ARTICLES_DIR, COMPETITIONS, CUP_BRACKET, CURRENT_SEASON, PLAYOFFS_BRACKET,
     SEASONS, STATIC_VERSION, TEAM_BY_SLUG, TEAM_DISPLAY,
     EIHL_COMPETITIONS, EIHL_COMP_LABELS, EIHL_CURRENT_SEASON, EIHL_SEASONS,
     EIHL_TEAM_DISPLAY,
+    WNIHL_COMPETITIONS, WNIHL_COMP_LABELS, WNIHL_CURRENT_SEASON, WNIHL_SEASONS,
 )
 
 app = Flask(__name__)
@@ -343,13 +345,19 @@ def _load_article(slug):
 def inject_globals():
     from flask import request as _req
     endpoint = _req.endpoint or ""
-    league_ctx = "eihl" if endpoint.startswith("eihl") else "snl"
+    if endpoint.startswith("eihl"):
+        league_ctx = "eihl"
+    elif endpoint.startswith("wnihl"):
+        league_ctx = "wnihl"
+    else:
+        league_ctx = "snl"
     return {
         "current_year": date.today().year,
         "team_display": TEAM_DISPLAY,
         "static_version": STATIC_VERSION,
         "league_ctx": league_ctx,
         "eihl_team_display": EIHL_TEAM_DISPLAY,
+        "wnihl_comp_labels": WNIHL_COMP_LABELS,
     }
 
 
@@ -758,6 +766,86 @@ def eihl_stats_goalies():
         comp_labels=EIHL_COMP_LABELS,
         season=season, seasons=EIHL_SEASONS,
         goalies=goalies,
+    )
+
+
+# ---------------------------------------------------------------------------
+# WNIHL routes  (/uk-hockey/wnihl/...)
+# ---------------------------------------------------------------------------
+
+@app.route("/uk-hockey/wnihl/")
+def wnihl_overview():
+    season = request.args.get("season", WNIHL_CURRENT_SEASON)
+    if season not in WNIHL_SEASONS:
+        season = WNIHL_CURRENT_SEASON
+    comp = request.args.get("comp", "Elite")
+    if comp not in WNIHL_COMPETITIONS:
+        comp = "Elite"
+    recent    = wnihl_queries.get_wnihl_recent_results(comp, season, limit=8)
+    upcoming  = wnihl_queries.get_wnihl_upcoming_fixtures(comp, season, limit=5)
+    standings = wnihl_queries.get_wnihl_standings(comp, season)
+    return render_template(
+        "wnihl/overview.html",
+        comp=comp, competitions=WNIHL_COMPETITIONS,
+        comp_labels=WNIHL_COMP_LABELS,
+        season=season, seasons=WNIHL_SEASONS,
+        recent=recent, upcoming=upcoming, standings=standings,
+    )
+
+
+@app.route("/uk-hockey/wnihl/fixtures/")
+def wnihl_fixtures():
+    season = request.args.get("season", WNIHL_CURRENT_SEASON)
+    if season not in WNIHL_SEASONS:
+        season = WNIHL_CURRENT_SEASON
+    comp = request.args.get("comp", "all")
+    if comp not in (["all"] + WNIHL_COMPETITIONS):
+        comp = "all"
+    all_fx   = wnihl_queries.get_wnihl_all_fixtures(comp, season)
+    upcoming = [f for f in all_fx if f["status"] == "scheduled"]
+    results  = [f for f in all_fx if f["status"] != "scheduled"]
+    return render_template(
+        "wnihl/fixtures.html",
+        comp=comp, competitions=["all"] + WNIHL_COMPETITIONS,
+        comp_labels=WNIHL_COMP_LABELS,
+        season=season, seasons=WNIHL_SEASONS,
+        upcoming=upcoming, results=results,
+    )
+
+
+@app.route("/uk-hockey/wnihl/standings/")
+def wnihl_standings():
+    season = request.args.get("season", WNIHL_CURRENT_SEASON)
+    if season not in WNIHL_SEASONS:
+        season = WNIHL_CURRENT_SEASON
+    comp = request.args.get("comp", "Elite")
+    if comp not in WNIHL_COMPETITIONS:
+        comp = "Elite"
+    standings = wnihl_queries.get_wnihl_standings(comp, season)
+    return render_template(
+        "wnihl/standings.html",
+        comp=comp, competitions=WNIHL_COMPETITIONS,
+        comp_labels=WNIHL_COMP_LABELS,
+        season=season, seasons=WNIHL_SEASONS,
+        standings=standings,
+    )
+
+
+@app.route("/uk-hockey/wnihl/statistics/")
+def wnihl_statistics():
+    season = request.args.get("season", WNIHL_CURRENT_SEASON)
+    if season not in WNIHL_SEASONS:
+        season = WNIHL_CURRENT_SEASON
+    comp = request.args.get("comp", "Elite")
+    if comp not in WNIHL_COMPETITIONS:
+        comp = "Elite"
+    stats = wnihl_queries.get_wnihl_player_stats(comp, season)
+    return render_template(
+        "wnihl/statistics.html",
+        comp=comp, competitions=WNIHL_COMPETITIONS,
+        comp_labels=WNIHL_COMP_LABELS,
+        season=season, seasons=WNIHL_SEASONS,
+        stats=stats,
     )
 
 

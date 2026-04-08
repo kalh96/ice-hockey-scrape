@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}{{ comp_labels[comp] }} – Scottish Ice Hockey News{% endblock %}
+{% block meta_description %}WNIHL standings, results and upcoming fixtures.{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Women's National Ice Hockey League</h1>
+
+<div class="comp-tabs">
+  {% for c in competitions %}
+    <a href="{{ url_for('wnihl_overview', comp=c, season=season) }}"
+       class="comp-tab {{ 'active' if c == comp else '' }}">
+      {{ comp_labels[c] }}
+    </a>
+  {% endfor %}
+</div>
+
+{% if seasons | length > 1 %}
+<div class="season-selector">
+  <span class="season-label">Season:</span>
+  {% for s in seasons %}
+    <a href="{{ url_for('wnihl_overview', comp=comp, season=s) }}"
+       class="season-tab {{ 'active' if s == season else '' }}">{{ s }}</a>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="two-col-layout">
+
+  <div class="two-col-main">
+
+    {% if upcoming %}
+      <h2 class="section-title">Upcoming</h2>
+      <div class="result-list">
+        {% for f in upcoming %}
+          <div class="result-card">
+            <div class="team-home">{{ f.home_team }}</div>
+            <div class="result-card-centre">
+              <div class="score upcoming-score">vs</div>
+              {% if f.date %}<div class="meta">{{ f.date[:10] }}</div>{% endif %}
+              {% if f.venue %}<div class="meta">{{ f.venue }}</div>{% endif %}
+            </div>
+            <div class="team-away">{{ f.away_team }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% if recent %}
+      <h2 class="section-title mt-2">Recent Results</h2>
+      <div class="result-list">
+        {% for f in recent %}
+          <div class="result-card">
+            <div class="team-home">{{ f.home_team }}</div>
+            <div class="result-card-centre">
+              <div class="score">{{ f.home_score }} – {{ f.away_score }}</div>
+              {% if f.date %}<div class="meta">{{ f.date[:10] }}</div>{% endif %}
+            </div>
+            <div class="team-away">{{ f.away_team }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% if not recent and not upcoming %}
+      <p class="no-data">No fixtures found. Run the WNIHL scraper to populate data.</p>
+    {% endif %}
+
+  </div>
+
+  {% if standings %}
+  <div class="two-col-sidebar">
+    <h2 class="section-title">{{ comp_labels[comp] }} Table</h2>
+    <table class="standings-table">
+      <thead>
+        <tr>
+          <th>#</th><th class="team-col">Team</th>
+          <th>P</th><th>W</th><th>D</th><th>L</th>
+          <th>GF</th><th>GA</th><th>PTS</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in standings %}
+          <tr>
+            <td>{{ row.pos }}</td>
+            <td class="team-col">{{ row.team }}</td>
+            <td>{{ row.gp }}</td>
+            <td>{{ row.w }}</td>
+            <td>{{ row.d or 0 }}</td>
+            <td>{{ row.l }}</td>
+            <td>{{ row.gf }}</td>
+            <td>{{ row.ga }}</td>
+            <td><strong>{{ row.pts }}</strong></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div class="standings-more">
+      <a href="{{ url_for('wnihl_standings', comp=comp, season=season) }}">Full standings →</a>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

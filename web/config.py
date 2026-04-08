@@ -125,9 +125,23 @@ EIHL_TEAM_DISPLAY = {
     "Sheffield Steelers":  {"full": "Sheffield Steelers",  "short": "Steelers", "slug": "sheffield-steelers",  "logo": "sheffield-steelers.png"},
 }
 
+# ---------------------------------------------------------------------------
+# WNIHL configuration
+# ---------------------------------------------------------------------------
+
+WNIHL_CURRENT_SEASON = "2025-26"
+WNIHL_SEASONS        = ["2025-26"]
+WNIHL_COMPETITIONS   = ["Elite", "1 North", "1 South"]
+
+WNIHL_COMP_LABELS = {
+    "Elite":   "WNIHL Elite",
+    "1 North": "WNIHL 1 North",
+    "1 South": "WNIHL 1 South",
+}
+
 # Bump this string whenever you push CSS/JS changes to force Cloudflare to
 # fetch the new file instead of serving a stale cached copy.
-STATIC_VERSION = "20260408-2"
+STATIC_VERSION = "20260408-3"
 
 # Scottish Cup 2025-26 bracket structure.
 # Each round lists matchups; each matchup is a list of event IDs (leg 1, leg 2).
