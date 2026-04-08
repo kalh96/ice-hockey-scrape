@@ -57,6 +57,12 @@ def eihl_logo_filter(db_name):
     return EIHL_TEAM_DISPLAY.get(db_name, {}).get("logo", "")
 
 
+@app.template_filter("eihl_slug")
+def eihl_slug_filter(db_name):
+    """EIHL DB team name → URL slug (e.g. 'Belfast Giants' → 'belfast-giants')."""
+    return EIHL_TEAM_DISPLAY.get(db_name, {}).get("slug", "")
+
+
 # ---------------------------------------------------------------------------
 # Win probability model
 # ---------------------------------------------------------------------------
@@ -343,14 +349,29 @@ def _load_article(slug):
 
 @app.context_processor
 def inject_globals():
-    from flask import request as _req
+    from flask import request as _req, session
     endpoint = _req.endpoint or ""
+
+    # SNL-specific pages explicitly set context to SNL
+    _SNL_ENDPOINTS = {
+        "fixtures", "fixture_preview", "event_detail", "standings",
+        "statistics", "stats_skaters", "stats_netminders",
+        "teams_list", "team_detail",
+    }
+
     if endpoint.startswith("eihl"):
         league_ctx = "eihl"
+        session["league_ctx"] = "eihl"
     elif endpoint.startswith("wnihl"):
         league_ctx = "wnihl"
-    else:
+        session["league_ctx"] = "wnihl"
+    elif endpoint in _SNL_ENDPOINTS:
         league_ctx = "snl"
+        session["league_ctx"] = "snl"
+    else:
+        # Generic pages (home, articles, about) — preserve the last league visited
+        league_ctx = session.get("league_ctx", "snl")
+
     return {
         "current_year": date.today().year,
         "team_display": TEAM_DISPLAY,
@@ -719,21 +740,24 @@ def eihl_team_detail(slug):
     team_name = EIHL_SLUG_TO_TEAM.get(slug)
     if not team_name:
         abort(404)
-    season   = request.args.get("season", EIHL_CURRENT_SEASON)
+    season          = request.args.get("season", EIHL_CURRENT_SEASON)
     if season not in EIHL_SEASONS:
         season = EIHL_CURRENT_SEASON
-    all_fx   = eihl_queries.get_eihl_team_fixtures(team_name, season=season)
-    upcoming = [f for f in all_fx if f["status"] == "scheduled"]
-    results  = [f for f in all_fx if f["status"] != "scheduled"]
-    standing = eihl_queries.get_eihl_team_standing(team_name, season=season)
-    skaters  = eihl_queries.get_eihl_team_skaters(team_name, season=season)
-    info     = EIHL_TEAM_DISPLAY.get(team_name, {})
+    all_fx          = eihl_queries.get_eihl_team_fixtures(team_name, season=season)
+    upcoming        = [f for f in all_fx if f["status"] == "scheduled"]
+    results         = [f for f in all_fx if f["status"] != "scheduled"]
+    league_standings = eihl_queries.get_eihl_standings("League", season=season)
+    cup_standings   = eihl_queries.get_eihl_standings("Cup", season=season)
+    skaters         = eihl_queries.get_eihl_team_skaters(team_name, season=season)
+    info            = EIHL_TEAM_DISPLAY.get(team_name, {})
     return render_template(
         "eihl/team_detail.html",
         team_name=team_name, info=info, slug=slug,
         season=season, seasons=EIHL_SEASONS,
         upcoming=upcoming, results=results,
-        standing=standing, skaters=skaters,
+        league_standings=league_standings,
+        cup_standings=cup_standings,
+        skaters=skaters,
         eihl_short=_eihl_short,
     )
 

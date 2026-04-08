@@ -97,7 +97,14 @@
           {% for row in standings if row.group_name == group %}
             <tr>
               <td>{{ row.pos }}</td>
-              <td class="team-col">{{ row.team }}</td>
+              <td class="team-col">
+                {% set tslug = row.team | eihl_slug %}
+                {% if tslug %}
+                  <a href="{{ url_for('eihl_team_detail', slug=tslug) }}" class="team-name-link">{{ row.team }}</a>
+                {% else %}
+                  {{ row.team }}
+                {% endif %}
+              </td>
               <td>{{ row.gp }}</td>
               <td>{{ row.w }}</td>
               <td>{{ row.otw }}</td>

@@ -58,6 +58,24 @@ document.querySelectorAll('.roster-tabs').forEach(container => {
   });
 });
 
+// Generic tab switching via .tab-trigger elements
+// Tabs use data-tab="panel-id" and toggle .active on sibling .tab-panel elements
+document.querySelectorAll('.tab-trigger').forEach(trigger => {
+  trigger.addEventListener('click', function(e) {
+    e.preventDefault();
+    const targetId = this.dataset.tab;
+    // Deactivate all sibling triggers in same .comp-tabs
+    const tabBar = this.closest('.comp-tabs');
+    if (tabBar) tabBar.querySelectorAll('.tab-trigger').forEach(t => t.classList.remove('active'));
+    this.classList.add('active');
+    // Deactivate all panels that are siblings of the tab bar's parent
+    const section = tabBar ? tabBar.parentElement : document;
+    section.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    const panel = document.getElementById(targetId);
+    if (panel) panel.classList.add('active');
+  });
+});
+
 // Table sorting
 document.querySelectorAll('table.sortable').forEach(table => {
   const ths = Array.from(table.querySelectorAll('thead th'));

@@ -144,7 +144,7 @@ WNIHL_COMP_LABELS = {
 
 # Bump this string whenever you push CSS/JS changes to force Cloudflare to
 # fetch the new file instead of serving a stale cached copy.
-STATIC_VERSION = "20260408-4"
+STATIC_VERSION = "20260408-5"
 
 # Scottish Cup 2025-26 bracket structure.
 # Each round lists matchups; each matchup is a list of event IDs (leg 1, leg 2).

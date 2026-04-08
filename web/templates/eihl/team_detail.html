@@ -3,13 +3,20 @@
 {% block meta_description %}Fixtures, results and statistics for {{ info.full or team_name }} in the EIHL.{% endblock %}
 
 {% block content %}
+
+{# Team header — same structure as SNL team pages #}
 <div class="team-header">
-  {% set logo = team_name | eihl_logo %}
-  {% if logo %}
-    <img src="{{ url_for('static', filename='img/eihl/' + logo) }}?v={{ static_version }}"
-         alt="{{ info.full or team_name }}" class="team-logo-xl" onerror="this.style.display='none'">
-  {% endif %}
-  <h1 class="page-title">{{ info.full or team_name }}</h1>
+  <div class="team-header-logo">
+    {% set logo = team_name | eihl_logo %}
+    {% if logo %}
+      <img src="{{ url_for('static', filename='img/eihl/' + logo) }}?v={{ static_version }}"
+           alt="{{ info.full or team_name }}" class="team-logo-xl" onerror="this.style.display='none'">
+    {% endif %}
+  </div>
+  <div class="team-header-info">
+    <h1 class="team-header-name">{{ info.full or team_name }}</h1>
+    <div class="text-muted">{{ season }} Season · Elite Ice Hockey League</div>
+  </div>
 </div>
 
 {% if seasons | length > 1 %}
@@ -22,7 +29,112 @@
 </div>
 {% endif %}
 
-<div class="two-col-layout">
+{# Standings tabs #}
+{% if league_standings or cup_standings %}
+  <div class="comp-tabs mt-2">
+    <a href="#league-standings" class="comp-tab active tab-trigger" data-tab="league-standings">League Table</a>
+    {% if cup_standings %}
+      <a href="#cup-standings" class="comp-tab tab-trigger" data-tab="cup-standings">Challenge Cup</a>
+    {% endif %}
+  </div>
+
+  <div class="tab-panel active" id="league-standings">
+    {% if league_standings %}
+      <div class="table-scroll">
+      <table class="standings-table">
+        <thead>
+          <tr>
+            <th>#</th><th class="team-col">Team</th>
+            <th>GP</th><th>W</th><th>OTW</th><th>L</th><th>OTL</th>
+            <th>GF</th><th>GA</th><th>GD</th><th>PTS</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in league_standings %}
+            <tr class="{{ 'standings-highlight' if row.team == team_name else '' }}">
+              <td>{{ row.pos }}</td>
+              <td class="team-col">
+                {% set tslug = row.team | eihl_slug %}
+                {% if tslug and row.team != team_name %}
+                  <a href="{{ url_for('eihl_team_detail', slug=tslug) }}" class="team-name-link">{{ row.team }}</a>
+                {% else %}
+                  {{ row.team }}
+                {% endif %}
+                {% if row.qualifier == 'c' %}
+                  <span class="qualifier-badge qualifier-c" title="Champions">C</span>
+                {% elif row.qualifier in ('x', 'y') %}
+                  <span class="qualifier-badge qualifier-x" title="Playoff-qualified">X</span>
+                {% endif %}
+              </td>
+              <td>{{ row.gp }}</td>
+              <td>{{ row.w }}</td>
+              <td>{{ row.otw or 0 }}</td>
+              <td>{{ row.l }}</td>
+              <td>{{ row.otl or 0 }}</td>
+              <td>{{ row.gf }}</td>
+              <td>{{ row.ga }}</td>
+              <td>{{ (row.gf or 0) - (row.ga or 0) }}</td>
+              <td><strong>{{ row.pts }}</strong></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    {% else %}
+      <p class="no-data">No League standings available.</p>
+    {% endif %}
+  </div>
+
+  {% if cup_standings %}
+    <div class="tab-panel" id="cup-standings">
+      {% set cup_groups = cup_standings | map(attribute='group_name') | unique | list %}
+      {% for group in cup_groups %}
+        {% if group %}
+          <h3 class="standings-group-title">Group {{ group }}</h3>
+        {% endif %}
+        <div class="table-scroll">
+        <table class="standings-table">
+          <thead>
+            <tr>
+              <th>#</th><th class="team-col">Team</th>
+              <th>GP</th><th>W</th><th>OTW</th><th>L</th><th>OTL</th>
+              <th>GF</th><th>GA</th><th>PTS</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in cup_standings if row.group_name == group %}
+              <tr class="{{ 'standings-highlight' if row.team == team_name else '' }}">
+                <td>{{ row.pos }}</td>
+                <td class="team-col">
+                  {% set tslug = row.team | eihl_slug %}
+                  {% if tslug and row.team != team_name %}
+                    <a href="{{ url_for('eihl_team_detail', slug=tslug) }}" class="team-name-link">{{ row.team }}</a>
+                  {% else %}
+                    {{ row.team }}
+                  {% endif %}
+                  {% if row.qualifier in ('x', 'y') %}
+                    <span class="qualifier-badge qualifier-x" title="Qualifier">X</span>
+                  {% endif %}
+                </td>
+                <td>{{ row.gp }}</td>
+                <td>{{ row.w }}</td>
+                <td>{{ row.otw or 0 }}</td>
+                <td>{{ row.l }}</td>
+                <td>{{ row.otl or 0 }}</td>
+                <td>{{ row.gf }}</td>
+                <td>{{ row.ga }}</td>
+                <td><strong>{{ row.pts }}</strong></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endif %}
+
+<div class="two-col-layout mt-2">
 
   <div class="two-col-main">
 
@@ -79,58 +191,31 @@
 
   </div>
 
+  {% if skaters %}
   <div class="two-col-sidebar">
-
-    {% if standing %}
-      <h2 class="section-title">League Standing</h2>
-      <table class="standings-table">
-        <thead>
+    <h2 class="section-title">Top Scorers</h2>
+    <table class="stats-table">
+      <thead>
+        <tr>
+          <th class="player-col">Player</th>
+          <th>Pos</th><th>GP</th><th>G</th><th>A</th><th>PTS</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in skaters[:10] %}
           <tr>
-            <th>#</th><th>GP</th><th>W</th><th>OTW</th>
-            <th>L</th><th>OTL</th><th>GF</th><th>GA</th><th>PTS</th>
+            <td class="player-col">{{ p.player_name }}</td>
+            <td>{{ p.position }}</td>
+            <td>{{ p.gp }}</td>
+            <td>{{ p.g }}</td>
+            <td>{{ p.a }}</td>
+            <td><strong>{{ p.pts }}</strong></td>
           </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>{{ standing.pos }}</td>
-            <td>{{ standing.gp }}</td>
-            <td>{{ standing.w }}</td>
-            <td>{{ standing.otw }}</td>
-            <td>{{ standing.l }}</td>
-            <td>{{ standing.otl }}</td>
-            <td>{{ standing.gf }}</td>
-            <td>{{ standing.ga }}</td>
-            <td><strong>{{ standing.pts }}</strong></td>
-          </tr>
-        </tbody>
-      </table>
-    {% endif %}
-
-    {% if skaters %}
-      <h2 class="section-title mt-2">Top Scorers</h2>
-      <table class="stats-table">
-        <thead>
-          <tr>
-            <th class="player-col">Player</th>
-            <th>Pos</th><th>GP</th><th>G</th><th>A</th><th>PTS</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for p in skaters[:10] %}
-            <tr>
-              <td class="player-col">{{ p.player_name }}</td>
-              <td>{{ p.position }}</td>
-              <td>{{ p.gp }}</td>
-              <td>{{ p.g }}</td>
-              <td>{{ p.a }}</td>
-              <td><strong>{{ p.pts }}</strong></td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    {% endif %}
-
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
+  {% endif %}
 
 </div>
 {% endblock %}

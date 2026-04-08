@@ -44,10 +44,15 @@
         <tr>
           <td>{{ row.pos }}</td>
           <td class="team-col">
-            {{ row.team }}
+            {% set tslug = row.team | eihl_slug %}
+            {% if tslug %}
+              <a href="{{ url_for('eihl_team_detail', slug=tslug) }}" class="team-name-link">{{ row.team }}</a>
+            {% else %}
+              {{ row.team }}
+            {% endif %}
             {% if row.qualifier == 'c' %}
               <span class="qualifier-badge qualifier-c" title="Champions">C</span>
-            {% elif row.qualifier == 'x' %}
+            {% elif row.qualifier in ('x', 'y') %}
               <span class="qualifier-badge qualifier-x" title="Playoff-qualified">X</span>
             {% endif %}
           </td>
