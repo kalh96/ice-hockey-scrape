@@ -88,7 +88,7 @@
         <a href="{{ url_for('home') }}"
            class="{{ 'active' if request.endpoint and (request.endpoint.startswith('eihl') or request.endpoint.startswith('wnihl')) else '' }}">UK Competitions</a>
         <ul class="dropdown-menu">
-          <li><a href="{{ url_for('home') }}">Scottish National League</a></li>
+          <li><a href="{{ url_for('home', league='snl') }}">Scottish National League</a></li>
           <li><a href="{{ url_for('eihl_overview') }}">Elite Ice Hockey League</a></li>
           <li><a href="{{ url_for('wnihl_overview', comp='Elite') }}">WNIHL Elite</a></li>
           <li><a href="{{ url_for('wnihl_overview', comp='1 North') }}">WNIHL 1 North</a></li>

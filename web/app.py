@@ -374,7 +374,7 @@ def inject_globals():
         # Track which WNIHL competition was last viewed for the nav teams list
         wnihl_comp = _req.args.get("comp") or session.get("wnihl_comp", "Elite")
         session["wnihl_comp"] = wnihl_comp
-    elif endpoint in _SNL_ENDPOINTS:
+    elif endpoint in _SNL_ENDPOINTS or _req.args.get("league") == "snl":
         league_ctx = "snl"
         session["league_ctx"] = "snl"
     else:
