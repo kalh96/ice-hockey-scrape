@@ -81,10 +81,10 @@ def get_eihl_standings(competition="League", season=EIHL_CURRENT_SEASON):
     try:
         rows = conn.execute(
             """
-            SELECT team, group_name, pos, gp, pts, w, otw, l, otl, gf, ga
+            SELECT team, group_name, qualifier, pos, gp, pts, w, otw, l, otl, gf, ga
             FROM eihl_standings
             WHERE competition = ? AND season = ?
-            ORDER BY group_name NULLS FIRST, pos
+            ORDER BY group_name, pos
             """,
             (competition, season),
         ).fetchall()
@@ -173,6 +173,60 @@ def get_eihl_game_detail(game_id: str):
             "events":       [dict(r) for r in events],
             "player_stats": [dict(r) for r in player_stats],
         }
+    finally:
+        conn.close()
+
+
+def get_eihl_team_fixtures(team_name: str, season=EIHL_CURRENT_SEASON):
+    """Return all fixtures (results + scheduled) for a specific team."""
+    conn = _conn()
+    try:
+        rows = conn.execute(
+            """
+            SELECT game_id, date, home_team, away_team, home_score, away_score,
+                   status, competition
+            FROM eihl_fixtures
+            WHERE (home_team = ? OR away_team = ?) AND season = ?
+            ORDER BY COALESCE(date, 'z') ASC, game_id ASC
+            """,
+            (team_name, team_name, season),
+        ).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def get_eihl_team_standing(team_name: str, season=EIHL_CURRENT_SEASON):
+    """Return the League standing row for a team, or None."""
+    conn = _conn()
+    try:
+        row = conn.execute(
+            """
+            SELECT team, qualifier, pos, gp, pts, w, otw, l, otl, gf, ga
+            FROM eihl_standings
+            WHERE team = ? AND competition = 'League' AND season = ?
+            """,
+            (team_name, season),
+        ).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def get_eihl_team_skaters(team_name: str, competition="League", season=EIHL_CURRENT_SEASON):
+    """Return skater stats for a specific team."""
+    conn = _conn()
+    try:
+        rows = conn.execute(
+            """
+            SELECT player_name, position, gp, g, a, pts, pim, plus_minus, sog
+            FROM eihl_skater_stats
+            WHERE team = ? AND competition = ? AND season = ?
+            ORDER BY pts DESC, g DESC
+            """,
+            (team_name, competition, season),
+        ).fetchall()
+        return [dict(r) for r in rows]
     finally:
         conn.close()
 

@@ -55,20 +55,20 @@
       {% if league_ctx == 'eihl' %}
         <li class="nav-dropdown">
           <a href="{{ url_for('eihl_overview') }}"
-             class="{{ 'active' if request.endpoint == 'eihl_overview' else '' }}">Teams</a>
+             class="{{ 'active' if request.endpoint in ('eihl_overview', 'eihl_team_detail') else '' }}">Teams</a>
           <ul class="dropdown-menu">
             {% for db_name, info in eihl_team_display.items() %}
-              <li><a href="{{ url_for('eihl_overview') }}">{{ info.full }}</a></li>
+              <li><a href="{{ url_for('eihl_team_detail', slug=info.slug) }}">{{ info.full }}</a></li>
             {% endfor %}
           </ul>
         </li>
       {% elif league_ctx == 'wnihl' %}
         <li class="nav-dropdown">
-          <a href="{{ url_for('wnihl_standings') }}"
-             class="{{ 'active' if request.endpoint == 'wnihl_standings' else '' }}">Standings</a>
+          <a href="{{ url_for('wnihl_teams') }}"
+             class="{{ 'active' if request.endpoint == 'wnihl_teams' else '' }}">Teams</a>
           <ul class="dropdown-menu">
             {% for c, label in wnihl_comp_labels.items() %}
-              <li><a href="{{ url_for('wnihl_standings', comp=c) }}">{{ label }}</a></li>
+              <li><a href="{{ url_for('wnihl_teams', comp=c) }}">{{ label }}</a></li>
             {% endfor %}
           </ul>
         </li>
@@ -85,9 +85,10 @@
       {% endif %}
 
       <li class="nav-dropdown">
-        <a href="{{ url_for('eihl_overview') }}"
-           class="{{ 'active' if request.endpoint and (request.endpoint.startswith('eihl') or request.endpoint.startswith('wnihl')) else '' }}">UK Hockey</a>
+        <a href="{{ url_for('home') }}"
+           class="{{ 'active' if request.endpoint and (request.endpoint.startswith('eihl') or request.endpoint.startswith('wnihl')) else '' }}">UK Competitions</a>
         <ul class="dropdown-menu">
+          <li><a href="{{ url_for('home') }}">Scottish National League</a></li>
           <li><a href="{{ url_for('eihl_overview') }}">Elite Ice Hockey League</a></li>
           <li><a href="{{ url_for('wnihl_overview', comp='Elite') }}">WNIHL Elite</a></li>
           <li><a href="{{ url_for('wnihl_overview', comp='1 North') }}">WNIHL 1 North</a></li>

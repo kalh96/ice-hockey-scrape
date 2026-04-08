@@ -160,6 +160,23 @@ def init_eihl_schema(conn: sqlite3.Connection) -> None:
     # Migrations: add columns that didn't exist in the initial schema
     _add_column_if_missing(conn, "eihl_standings", "qualifier", "TEXT")
 
+    # Migration: fix NULL group_name rows (SQLite NULL != NULL breaks UNIQUE upsert)
+    # Step 1: remove old-format rows where qualifier wasn't stripped (team starts with digit)
+    conn.execute("DELETE FROM eihl_standings WHERE team GLOB '[0-9]*'")
+    # Step 2: delete NULL group_name duplicates, keep only latest per team
+    conn.execute("""
+        DELETE FROM eihl_standings
+        WHERE group_name IS NULL
+          AND id NOT IN (
+            SELECT MAX(id) FROM eihl_standings
+            WHERE group_name IS NULL
+            GROUP BY season, competition, team
+          )
+    """)
+    # Step 3: rename NULL → '' so UNIQUE constraint works
+    conn.execute("UPDATE eihl_standings SET group_name = '' WHERE group_name IS NULL")
+    conn.commit()
+
 
 def _add_column_if_missing(conn: sqlite3.Connection, table: str, column: str, col_type: str) -> None:
     existing = {row[1] for row in conn.execute(f"PRAGMA table_info({table})")}

@@ -50,7 +50,8 @@ def _parse_standings_table(table, competition: str, season: str,
     pos  = 0
     tbody = table.find("tbody") or table
     for tr in tbody.find_all("tr"):
-        cells = [td.get_text(strip=True) for td in tr.find_all(["td", "th"])]
+        # Collapse all internal whitespace/newlines into single spaces
+        cells = [" ".join(td.get_text().split()) for td in tr.find_all(["td", "th"])]
         if not cells or len(cells) < 4:
             continue
 
@@ -63,14 +64,20 @@ def _parse_standings_table(table, competition: str, season: str,
         if not team_name:
             continue
 
-        # Strip position+qualifier prefix: "1c - Belfast Giants" → "Belfast Giants" (qualifier="c")
-        # Format: optional_digits + optional_letter + optional_separator + team_name
+        # Strip position+qualifier prefix.
+        # Formats seen: "1 c - Belfast Giants", "2 x - Cardiff Devils", "9 Dundee Stars"
+        # Also Cup: "1 x - Sheffield Steelers", "3 y - Nottingham Panthers"
         qualifier = None
-        qm = re.match(r"^\d+([cx])?\s*[-–]\s*(.+)$", team_name, re.IGNORECASE)
+        # With qualifier + separator: "1 c - Belfast Giants"
+        qm = re.match(r"^\d+\s*([cxy])\s*[-–]\s*(.+)$", team_name, re.IGNORECASE)
         if qm:
-            q = qm.group(1)
-            qualifier = q.lower() if q else None
-            team_name = qm.group(2).strip()
+            qualifier  = qm.group(1).lower()
+            team_name  = qm.group(2).strip()
+        else:
+            # No qualifier, just position number: "9 Dundee Stars" or "1 - Belfast Giants"
+            nm = re.match(r"^\d+\s*[-–]?\s*(.+)$", team_name)
+            if nm and not re.match(r"^\d+$", nm.group(1)):
+                team_name = nm.group(1).strip()
 
         pos += 1
         rows.append({
@@ -97,7 +104,7 @@ def parse_standings_page(soup: BeautifulSoup, competition: str, season: str) -> 
     """Return list of standing dicts for all teams/groups on the page."""
     all_rows   = []
     tables     = soup.find_all("table")
-    group_name = None   # None for League; set to 'A'/'B' for Cup
+    group_name = ""   # "" for League; set to 'A'/'B' for Cup
 
     if competition == "Cup":
         # Cup page has two group tables; detect group labels from headings
@@ -116,7 +123,7 @@ def parse_standings_page(soup: BeautifulSoup, competition: str, season: str) -> 
     else:
         # League: single table, no group
         for table in tables:
-            rows = _parse_standings_table(table, competition, season, None)
+            rows = _parse_standings_table(table, competition, season, "")
             if rows:
                 all_rows.extend(rows)
                 break  # only need the first real standings table

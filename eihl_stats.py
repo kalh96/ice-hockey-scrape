@@ -87,7 +87,7 @@ def parse_skater_stats_page(soup: BeautifulSoup, competition: str, season: str) 
 
         player_a = tr.find("a", href=_PLAYER_RE)
         player_id = _player_id_from_href(player_a["href"] if player_a else None)
-        player_name = player_a.get_text(strip=True) if player_a else _col("PLAYER", cells)
+        player_name = player_a.get_text(" ", strip=True) if player_a else _col("PLAYER", cells)
         if not player_name:
             continue
 
@@ -140,7 +140,7 @@ def parse_goalie_stats_page(soup: BeautifulSoup, competition: str, season: str) 
 
         player_a    = tr.find("a", href=_PLAYER_RE)
         player_id   = _player_id_from_href(player_a["href"] if player_a else None)
-        player_name = player_a.get_text(strip=True) if player_a else _col("PLAYER", cells)
+        player_name = player_a.get_text(" ", strip=True) if player_a else _col("PLAYER", cells)
         if not player_name:
             continue
 

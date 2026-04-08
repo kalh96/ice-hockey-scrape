@@ -15,7 +15,7 @@ from config import (
     ARTICLES_DIR, COMPETITIONS, CUP_BRACKET, CURRENT_SEASON, PLAYOFFS_BRACKET,
     SEASONS, STATIC_VERSION, TEAM_BY_SLUG, TEAM_DISPLAY,
     EIHL_COMPETITIONS, EIHL_COMP_LABELS, EIHL_CURRENT_SEASON, EIHL_SEASONS,
-    EIHL_TEAM_DISPLAY,
+    EIHL_TEAM_DISPLAY, EIHL_SLUG_TO_TEAM,
     WNIHL_COMPETITIONS, WNIHL_COMP_LABELS, WNIHL_CURRENT_SEASON, WNIHL_SEASONS,
 )
 
@@ -714,6 +714,30 @@ def eihl_standings():
     )
 
 
+@app.route("/uk-hockey/elite-league/teams/<slug>/")
+def eihl_team_detail(slug):
+    team_name = EIHL_SLUG_TO_TEAM.get(slug)
+    if not team_name:
+        abort(404)
+    season   = request.args.get("season", EIHL_CURRENT_SEASON)
+    if season not in EIHL_SEASONS:
+        season = EIHL_CURRENT_SEASON
+    all_fx   = eihl_queries.get_eihl_team_fixtures(team_name, season=season)
+    upcoming = [f for f in all_fx if f["status"] == "scheduled"]
+    results  = [f for f in all_fx if f["status"] != "scheduled"]
+    standing = eihl_queries.get_eihl_team_standing(team_name, season=season)
+    skaters  = eihl_queries.get_eihl_team_skaters(team_name, season=season)
+    info     = EIHL_TEAM_DISPLAY.get(team_name, {})
+    return render_template(
+        "eihl/team_detail.html",
+        team_name=team_name, info=info, slug=slug,
+        season=season, seasons=EIHL_SEASONS,
+        upcoming=upcoming, results=results,
+        standing=standing, skaters=skaters,
+        eihl_short=_eihl_short,
+    )
+
+
 @app.route("/uk-hockey/elite-league/statistics/")
 def eihl_statistics():
     season = request.args.get("season", EIHL_CURRENT_SEASON)
@@ -810,6 +834,24 @@ def wnihl_fixtures():
         comp_labels=WNIHL_COMP_LABELS,
         season=season, seasons=WNIHL_SEASONS,
         upcoming=upcoming, results=results,
+    )
+
+
+@app.route("/uk-hockey/wnihl/teams/")
+def wnihl_teams():
+    season = request.args.get("season", WNIHL_CURRENT_SEASON)
+    if season not in WNIHL_SEASONS:
+        season = WNIHL_CURRENT_SEASON
+    comp = request.args.get("comp", "Elite")
+    if comp not in WNIHL_COMPETITIONS:
+        comp = "Elite"
+    standings = wnihl_queries.get_wnihl_standings(comp, season)
+    return render_template(
+        "wnihl/teams.html",
+        comp=comp, competitions=WNIHL_COMPETITIONS,
+        comp_labels=WNIHL_COMP_LABELS,
+        season=season, seasons=WNIHL_SEASONS,
+        standings=standings,
     )
 
 

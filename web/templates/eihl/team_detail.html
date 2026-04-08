@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}{{ info.full or team_name }} – Elite Ice Hockey League – Scottish Ice Hockey News{% endblock %}
+{% block meta_description %}Fixtures, results and statistics for {{ info.full or team_name }} in the EIHL.{% endblock %}
+
+{% block content %}
+<div class="team-header">
+  {% set logo = team_name | eihl_logo %}
+  {% if logo %}
+    <img src="{{ url_for('static', filename='img/eihl/' + logo) }}?v={{ static_version }}"
+         alt="{{ info.full or team_name }}" class="team-logo-xl" onerror="this.style.display='none'">
+  {% endif %}
+  <h1 class="page-title">{{ info.full or team_name }}</h1>
+</div>
+
+{% if seasons | length > 1 %}
+<div class="season-selector">
+  <span class="season-label">Season:</span>
+  {% for s in seasons %}
+    <a href="{{ url_for('eihl_team_detail', slug=slug, season=s) }}"
+       class="season-tab {{ 'active' if s == season else '' }}">{{ s }}</a>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="two-col-layout">
+
+  <div class="two-col-main">
+
+    {% if upcoming %}
+      <h2 class="section-title">Upcoming Fixtures</h2>
+      <div class="result-list">
+        {% for f in upcoming %}
+          <a href="{{ url_for('eihl_game_detail', game_id=f.game_id) }}" class="result-card-link">
+            <div class="result-card">
+              <div class="team-home {{ 'team-highlight' if f.home_team == team_name else '' }}">
+                {{ eihl_short(f.home_team) }}
+              </div>
+              <div class="result-card-centre">
+                <div class="score upcoming-score">vs</div>
+                {% if f.date %}<div class="meta">{{ f.date }}</div>{% endif %}
+                <div class="meta"><span class="badge">{{ f.competition }}</span></div>
+              </div>
+              <div class="team-away {{ 'team-highlight' if f.away_team == team_name else '' }}">
+                {{ eihl_short(f.away_team) }}
+              </div>
+            </div>
+          </a>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% if results %}
+      <h2 class="section-title {{ 'mt-2' if upcoming else '' }}">Results</h2>
+      <div class="result-list">
+        {% for f in results | reverse %}
+          <a href="{{ url_for('eihl_game_detail', game_id=f.game_id) }}" class="result-card-link">
+            <div class="result-card">
+              <div class="team-home {{ 'team-highlight' if f.home_team == team_name else '' }}">
+                {{ eihl_short(f.home_team) }}
+              </div>
+              <div class="result-card-centre">
+                <div class="score">{{ f.home_score }} – {{ f.away_score }}</div>
+                {% if f.date %}<div class="meta">{{ f.date }}</div>{% endif %}
+                <div class="meta"><span class="badge">{{ f.competition }}</span></div>
+                {% if f.status != 'final' %}<div class="meta"><span class="badge">{{ f.status }}</span></div>{% endif %}
+              </div>
+              <div class="team-away {{ 'team-highlight' if f.away_team == team_name else '' }}">
+                {{ eihl_short(f.away_team) }}
+              </div>
+            </div>
+          </a>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% if not results and not upcoming %}
+      <p class="no-data">No fixture data found for this team.</p>
+    {% endif %}
+
+  </div>
+
+  <div class="two-col-sidebar">
+
+    {% if standing %}
+      <h2 class="section-title">League Standing</h2>
+      <table class="standings-table">
+        <thead>
+          <tr>
+            <th>#</th><th>GP</th><th>W</th><th>OTW</th>
+            <th>L</th><th>OTL</th><th>GF</th><th>GA</th><th>PTS</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>{{ standing.pos }}</td>
+            <td>{{ standing.gp }}</td>
+            <td>{{ standing.w }}</td>
+            <td>{{ standing.otw }}</td>
+            <td>{{ standing.l }}</td>
+            <td>{{ standing.otl }}</td>
+            <td>{{ standing.gf }}</td>
+            <td>{{ standing.ga }}</td>
+            <td><strong>{{ standing.pts }}</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    {% endif %}
+
+    {% if skaters %}
+      <h2 class="section-title mt-2">Top Scorers</h2>
+      <table class="stats-table">
+        <thead>
+          <tr>
+            <th class="player-col">Player</th>
+            <th>Pos</th><th>GP</th><th>G</th><th>A</th><th>PTS</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in skaters[:10] %}
+            <tr>
+              <td class="player-col">{{ p.player_name }}</td>
+              <td>{{ p.position }}</td>
+              <td>{{ p.gp }}</td>
+              <td>{{ p.g }}</td>
+              <td>{{ p.a }}</td>
+              <td><strong>{{ p.pts }}</strong></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+
+  </div>
+
+</div>
+{% endblock %}
