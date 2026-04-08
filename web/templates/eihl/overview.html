@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}Elite Ice Hockey League – Scottish Ice Hockey News{% endblock %}
+{% block meta_description %}EIHL standings, results and upcoming fixtures.{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Elite Ice Hockey League</h1>
+
+<div class="comp-tabs">
+  {% for c in competitions %}
+    <a href="{{ url_for('eihl_overview', comp=c, season=season) }}"
+       class="comp-tab {{ 'active' if c == comp else '' }}">
+      {{ comp_labels[c] }}
+    </a>
+  {% endfor %}
+</div>
+
+{% if seasons | length > 1 %}
+<div class="season-selector">
+  <span class="season-label">Season:</span>
+  {% for s in seasons %}
+    <a href="{{ url_for('eihl_overview', comp=comp, season=s) }}"
+       class="season-tab {{ 'active' if s == season else '' }}">{{ s }}</a>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="two-col-layout">
+
+  {# Left: Results + Upcoming #}
+  <div class="two-col-main">
+
+    {% if upcoming %}
+      <h2 class="section-title">Upcoming</h2>
+      <div class="result-list">
+        {% for f in upcoming %}
+          <a href="{{ url_for('eihl_game_detail', game_id=f.game_id) }}" class="result-card-link">
+            <div class="result-card">
+              <div class="team-home">{{ eihl_short(f.home_team) }}</div>
+              <div class="result-card-centre">
+                <div class="score upcoming-score">vs</div>
+                {% if f.date %}<div class="meta">{{ f.date }}</div>{% endif %}
+                {% if comp == 'all' %}<div class="meta"><span class="badge">{{ f.competition }}</span></div>{% endif %}
+              </div>
+              <div class="team-away">{{ eihl_short(f.away_team) }}</div>
+            </div>
+          </a>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% if recent %}
+      <h2 class="section-title mt-2">Recent Results</h2>
+      <div class="result-list">
+        {% for f in recent %}
+          <a href="{{ url_for('eihl_game_detail', game_id=f.game_id) }}" class="result-card-link">
+            <div class="result-card">
+              <div class="team-home">{{ eihl_short(f.home_team) }}</div>
+              <div class="result-card-centre">
+                <div class="score">{{ f.home_score }} – {{ f.away_score }}</div>
+                {% if f.date %}<div class="meta">{{ f.date }}</div>{% endif %}
+                {% if f.status != 'final' %}<div class="meta"><span class="badge">{{ f.status }}</span></div>{% endif %}
+              </div>
+              <div class="team-away">{{ eihl_short(f.away_team) }}</div>
+            </div>
+          </a>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% if not recent and not upcoming %}
+      <p class="no-data">No fixtures found. Run the EIHL scraper to populate data.</p>
+    {% endif %}
+
+  </div>
+
+  {# Right: Standings sidebar #}
+  {% if standings %}
+  <div class="two-col-sidebar">
+    <h2 class="section-title">
+      {% if comp == 'League' %}League Table{% else %}{{ comp_labels[comp] }} Standings{% endif %}
+    </h2>
+
+    {% set groups = standings | map(attribute='group_name') | unique | list %}
+    {% for group in groups %}
+      {% if group %}
+        <h3 class="standings-group-title">Group {{ group }}</h3>
+      {% endif %}
+      <table class="standings-table">
+        <thead>
+          <tr>
+            <th>#</th><th class="team-col">Team</th>
+            <th>GP</th><th>W</th><th>OTW</th><th>L</th><th>OTL</th>
+            <th>GF</th><th>GA</th><th>PTS</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in standings if row.group_name == group %}
+            <tr>
+              <td>{{ row.pos }}</td>
+              <td class="team-col">{{ row.team }}</td>
+              <td>{{ row.gp }}</td>
+              <td>{{ row.w }}</td>
+              <td>{{ row.otw }}</td>
+              <td>{{ row.l }}</td>
+              <td>{{ row.otl }}</td>
+              <td>{{ row.gf }}</td>
+              <td>{{ row.ga }}</td>
+              <td><strong>{{ row.pts }}</strong></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endfor %}
+
+    <div class="standings-more">
+      <a href="{{ url_for('eihl_standings', comp=comp, season=season) }}">Full standings →</a>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

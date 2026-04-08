@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+{% block title %}{{ eihl_short(fixture.home_team) }} vs {{ eihl_short(fixture.away_team) }} – EIHL{% endblock %}
+
+{% block content %}
+
+{# Score header #}
+<div class="event-header">
+  <div class="event-team">{{ fixture.home_team }}</div>
+  <div class="event-score">
+    {% if fixture.status != 'scheduled' %}
+      <span class="score-main">{{ fixture.home_score }} – {{ fixture.away_score }}</span>
+      <span class="score-status">{{ fixture.status }}</span>
+    {% else %}
+      <span class="score-main">vs</span>
+    {% endif %}
+    {% if fixture.date %}<div class="event-date">{{ fixture.date }}</div>{% endif %}
+    {% if fixture.venue %}<div class="meta">{{ fixture.venue }}</div>{% endif %}
+    {% if fixture.attendance %}<div class="meta">Attendance: {{ fixture.attendance }}</div>{% endif %}
+  </div>
+  <div class="event-team">{{ fixture.away_team }}</div>
+</div>
+
+{# Period scores #}
+{% if fixture.home_p1 is not none %}
+<div class="period-scores">
+  <table class="period-table">
+    <thead>
+      <tr>
+        <th>Team</th><th>P1</th><th>P2</th><th>P3</th>
+        {% if fixture.home_ot is not none %}<th>OT</th>{% endif %}
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>{{ eihl_short(fixture.home_team) }}</td>
+        <td>{{ fixture.home_p1 }}</td>
+        <td>{{ fixture.home_p2 }}</td>
+        <td>{{ fixture.home_p3 }}</td>
+        {% if fixture.home_ot is not none %}<td>{{ fixture.home_ot }}</td>{% endif %}
+        <td><strong>{{ fixture.home_score }}</strong></td>
+      </tr>
+      <tr>
+        <td>{{ eihl_short(fixture.away_team) }}</td>
+        <td>{{ fixture.away_p1 }}</td>
+        <td>{{ fixture.away_p2 }}</td>
+        <td>{{ fixture.away_p3 }}</td>
+        {% if fixture.away_ot is not none %}<td>{{ fixture.away_ot }}</td>{% endif %}
+        <td><strong>{{ fixture.away_score }}</strong></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{# Goals #}
+{% if goals %}
+<h2 class="section-title">Goals</h2>
+<table class="stats-table">
+  <thead>
+    <tr><th>Period</th><th>Time</th><th>Team</th><th>Scorer</th><th>Assists</th><th>Type</th></tr>
+  </thead>
+  <tbody>
+    {% for g in goals %}
+    <tr>
+      <td>{{ g.period if g.period else 'OT' }}</td>
+      <td>{{ g.time_in_period or '–' }}</td>
+      <td>{{ eihl_short(g.team) if g.team else '–' }}</td>
+      <td>{{ g.player_name or '–' }}</td>
+      <td>
+        {% if g.assist1_name %}{{ g.assist1_name }}{% endif %}
+        {% if g.assist2_name %}, {{ g.assist2_name }}{% endif %}
+        {% if not g.assist1_name %}–{% endif %}
+      </td>
+      <td>{% if g.goal_type %}<span class="badge">{{ g.goal_type }}</span>{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{# Penalties #}
+{% if penalties %}
+<h2 class="section-title mt-2">Penalties</h2>
+<table class="stats-table">
+  <thead>
+    <tr><th>Period</th><th>Time</th><th>Team</th><th>Player</th><th>Infraction</th><th>Min</th></tr>
+  </thead>
+  <tbody>
+    {% for p in penalties %}
+    <tr>
+      <td>{{ p.period if p.period else 'OT' }}</td>
+      <td>{{ p.time_in_period or '–' }}</td>
+      <td>{{ eihl_short(p.team) if p.team else '–' }}</td>
+      <td>{{ p.player_name or '–' }}</td>
+      <td>{{ p.penalty_type or '–' }}</td>
+      <td>{{ p.penalty_minutes or '–' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{# Player stats — home team #}
+{% if home_skaters or home_goalies %}
+<h2 class="section-title mt-2">{{ fixture.home_team }}</h2>
+{% if home_skaters %}
+<div class="table-scroll">
+<table class="stats-table sortable">
+  <thead>
+    <tr>
+      <th>#</th><th>Player</th><th>Pos</th>
+      <th>G</th><th>A</th><th>PIM</th><th>PPG</th><th>SHG</th>
+      <th>+/-</th><th>SOG</th><th>TOI</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for p in home_skaters %}
+    <tr>
+      <td>{{ p.jersey or '' }}</td>
+      <td>{{ p.player_name }}</td>
+      <td>{{ p.position or '' }}</td>
+      <td>{{ p.goals if p.goals is not none else '' }}</td>
+      <td>{{ p.assists if p.assists is not none else '' }}</td>
+      <td>{{ p.pim if p.pim is not none else '' }}</td>
+      <td>{{ p.ppg if p.ppg is not none else '' }}</td>
+      <td>{{ p.shg if p.shg is not none else '' }}</td>
+      <td>{{ p.plus_minus if p.plus_minus is not none else '' }}</td>
+      <td>{{ p.sog if p.sog is not none else '' }}</td>
+      <td>{{ p.toi or '' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+{% if home_goalies %}
+<div class="table-scroll">
+<table class="stats-table">
+  <thead>
+    <tr><th>#</th><th>Player</th><th>SA</th><th>GA</th><th>SVS%</th><th>MIN</th></tr>
+  </thead>
+  <tbody>
+    {% for g in home_goalies %}
+    <tr>
+      <td>{{ g.jersey or '' }}</td>
+      <td>{{ g.player_name }}</td>
+      <td>{{ g.shots_against if g.shots_against is not none else '' }}</td>
+      <td>{{ g.goals_against if g.goals_against is not none else '' }}</td>
+      <td>{{ "%.3f"|format(g.svs_pct) if g.svs_pct is not none else '' }}</td>
+      <td>{{ g.min_played or '' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+{% endif %}
+
+{# Player stats — away team #}
+{% if away_skaters or away_goalies %}
+<h2 class="section-title mt-2">{{ fixture.away_team }}</h2>
+{% if away_skaters %}
+<div class="table-scroll">
+<table class="stats-table sortable">
+  <thead>
+    <tr>
+      <th>#</th><th>Player</th><th>Pos</th>
+      <th>G</th><th>A</th><th>PIM</th><th>PPG</th><th>SHG</th>
+      <th>+/-</th><th>SOG</th><th>TOI</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for p in away_skaters %}
+    <tr>
+      <td>{{ p.jersey or '' }}</td>
+      <td>{{ p.player_name }}</td>
+      <td>{{ p.position or '' }}</td>
+      <td>{{ p.goals if p.goals is not none else '' }}</td>
+      <td>{{ p.assists if p.assists is not none else '' }}</td>
+      <td>{{ p.pim if p.pim is not none else '' }}</td>
+      <td>{{ p.ppg if p.ppg is not none else '' }}</td>
+      <td>{{ p.shg if p.shg is not none else '' }}</td>
+      <td>{{ p.plus_minus if p.plus_minus is not none else '' }}</td>
+      <td>{{ p.sog if p.sog is not none else '' }}</td>
+      <td>{{ p.toi or '' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+{% if away_goalies %}
+<div class="table-scroll">
+<table class="stats-table">
+  <thead>
+    <tr><th>#</th><th>Player</th><th>SA</th><th>GA</th><th>SVS%</th><th>MIN</th></tr>
+  </thead>
+  <tbody>
+    {% for g in away_goalies %}
+    <tr>
+      <td>{{ g.jersey or '' }}</td>
+      <td>{{ g.player_name }}</td>
+      <td>{{ g.shots_against if g.shots_against is not none else '' }}</td>
+      <td>{{ g.goals_against if g.goals_against is not none else '' }}</td>
+      <td>{{ "%.3f"|format(g.svs_pct) if g.svs_pct is not none else '' }}</td>
+      <td>{{ g.min_played or '' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+{% endif %}
+
+{% if not goals and not penalties and not home_skaters and not away_skaters %}
+  <p class="no-data mt-2">Detailed game data not yet available.</p>
+{% endif %}
+
+<div class="back-link">
+  <a href="{{ url_for('eihl_fixtures') }}">&larr; All fixtures</a>
+</div>
+
+{% endblock %}

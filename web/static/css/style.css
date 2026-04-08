@@ -1349,3 +1349,95 @@ footer a:hover {
   .prob-team-label, .prob-team-label--home { flex-direction: row; justify-content: center; }
 }
 
+/* ============================================================
+   EIHL / UK Hockey additions
+   ============================================================ */
+
+/* Disabled dropdown items (WNIHL "coming soon") */
+.nav-dropdown .dropdown-disabled {
+  pointer-events: none;
+}
+.nav-dropdown .dropdown-disabled span {
+  display: block;
+  padding: 0.5rem 1.25rem;
+  color: #9ca3af;
+  font-size: 0.9rem;
+  cursor: default;
+}
+
+/* Two-column layout: main content + sidebar */
+.two-col-layout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 2rem;
+  align-items: start;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+.two-col-main    { min-width: 0; }
+.two-col-sidebar { min-width: 0; }
+
+@media (max-width: 820px) {
+  .two-col-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Standings inside sidebar or standalone */
+.standings-group-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 1rem 0 0.4rem;
+  color: var(--primary);
+}
+.standings-more {
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+}
+
+/* EIHL game detail header */
+.event-header {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 1rem;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem 1rem;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+.event-team   { font-size: 1.1rem; font-weight: 600; }
+.event-score  { text-align: center; }
+.score-main   { display: block; font-size: 2rem; font-weight: 700; color: var(--primary); }
+.score-status { display: block; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; }
+.event-date   { font-size: 0.9rem; color: var(--text-muted); margin-top: 0.25rem; }
+
+/* Period scores table */
+.period-scores { margin-bottom: 1.5rem; }
+.period-table {
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.period-table th,
+.period-table td {
+  border: 1px solid var(--border);
+  padding: 0.35rem 0.75rem;
+  text-align: center;
+}
+.period-table th { background: var(--bg-subtle); font-weight: 600; }
+
+/* Horizontal scrollable table wrapper */
+.table-scroll { overflow-x: auto; }
+
+/* Back link */
+.back-link {
+  margin-top: 2rem;
+  font-size: 0.9rem;
+}
+
+/* Utility */
+.mt-2 { margin-top: 1.5rem; }
+

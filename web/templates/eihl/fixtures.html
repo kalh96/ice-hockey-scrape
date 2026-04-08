@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}EIHL Fixtures & Results – Scottish Ice Hockey News{% endblock %}
+
+{% block content %}
+<h1 class="page-title">EIHL Fixtures &amp; Results</h1>
+
+<div class="comp-tabs">
+  {% for c in competitions %}
+    <a href="{{ url_for('eihl_fixtures', comp=c, season=season) }}"
+       class="comp-tab {{ 'active' if c == comp else '' }}">
+      {{ 'All' if c == 'all' else comp_labels.get(c, c) }}
+    </a>
+  {% endfor %}
+</div>
+
+{% if seasons | length > 1 %}
+<div class="season-selector">
+  <span class="season-label">Season:</span>
+  {% for s in seasons %}
+    <a href="{{ url_for('eihl_fixtures', comp=comp, season=s) }}"
+       class="season-tab {{ 'active' if s == season else '' }}">{{ s }}</a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if upcoming %}
+  <h2 class="section-title">Upcoming</h2>
+  <div class="result-list">
+    {% for f in upcoming %}
+      <a href="{{ url_for('eihl_game_detail', game_id=f.game_id) }}" class="result-card-link">
+        <div class="result-card">
+          <div class="team-home">{{ eihl_short(f.home_team) }}</div>
+          <div class="result-card-centre">
+            <div class="score upcoming-score">vs</div>
+            {% if f.date %}<div class="meta">{{ f.date }}</div>{% endif %}
+            {% if comp == 'all' %}<div class="meta"><span class="badge">{{ comp_labels.get(f.competition, f.competition) }}</span></div>{% endif %}
+          </div>
+          <div class="team-away">{{ eihl_short(f.away_team) }}</div>
+        </div>
+      </a>
+    {% endfor %}
+  </div>
+{% endif %}
+
+{% if results %}
+  <h2 class="section-title mt-2">Results</h2>
+  <div class="result-list">
+    {% for f in results %}
+      <a href="{{ url_for('eihl_game_detail', game_id=f.game_id) }}" class="result-card-link">
+        <div class="result-card">
+          <div class="team-home">{{ eihl_short(f.home_team) }}</div>
+          <div class="result-card-centre">
+            <div class="score">{{ f.home_score }} – {{ f.away_score }}</div>
+            {% if f.date %}<div class="meta">{{ f.date }}</div>{% endif %}
+            {% if f.status != 'final' %}<div class="meta"><span class="badge">{{ f.status }}</span></div>{% endif %}
+            {% if comp == 'all' %}<div class="meta"><span class="badge">{{ comp_labels.get(f.competition, f.competition) }}</span></div>{% endif %}
+          </div>
+          <div class="team-away">{{ eihl_short(f.away_team) }}</div>
+        </div>
+      </a>
+    {% endfor %}
+  </div>
+{% endif %}
+
+{% if not upcoming and not results %}
+  <p class="no-data">No fixtures found.</p>
+{% endif %}
+{% endblock %}

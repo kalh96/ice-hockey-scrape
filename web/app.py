@@ -9,9 +9,12 @@ import markdown2
 from flask import Flask, abort, redirect, render_template, request, url_for
 
 import db_queries
+import eihl_queries
 from config import (
     ARTICLES_DIR, COMPETITIONS, CUP_BRACKET, CURRENT_SEASON, PLAYOFFS_BRACKET,
     SEASONS, STATIC_VERSION, TEAM_BY_SLUG, TEAM_DISPLAY,
+    EIHL_COMPETITIONS, EIHL_COMP_LABELS, EIHL_CURRENT_SEASON, EIHL_SEASONS,
+    EIHL_TEAM_DISPLAY,
 )
 
 app = Flask(__name__)
@@ -595,6 +598,157 @@ def privacy():
 # ---------------------------------------------------------------------------
 # Error handlers
 # ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# EIHL routes  (/uk-hockey/elite-league/...)
+# ---------------------------------------------------------------------------
+
+def _eihl_short(db_name: str) -> str:
+    return EIHL_TEAM_DISPLAY.get(db_name, {}).get("short", db_name)
+
+
+@app.route("/uk-hockey/elite-league/")
+def eihl_overview():
+    season = request.args.get("season", EIHL_CURRENT_SEASON)
+    if season not in EIHL_SEASONS:
+        season = EIHL_CURRENT_SEASON
+    comp = request.args.get("comp", "League")
+    if comp not in EIHL_COMPETITIONS:
+        comp = "League"
+    recent    = eihl_queries.get_eihl_recent_results(comp, season=season, limit=8)
+    upcoming  = eihl_queries.get_eihl_upcoming_fixtures(comp, season=season, limit=5)
+    standings = eihl_queries.get_eihl_standings(comp, season=season)
+    return render_template(
+        "eihl/overview.html",
+        comp=comp, competitions=EIHL_COMPETITIONS,
+        comp_labels=EIHL_COMP_LABELS,
+        season=season, seasons=EIHL_SEASONS,
+        recent=recent, upcoming=upcoming, standings=standings,
+        eihl_short=_eihl_short,
+    )
+
+
+@app.route("/uk-hockey/elite-league/fixtures/")
+def eihl_fixtures():
+    season = request.args.get("season", EIHL_CURRENT_SEASON)
+    if season not in EIHL_SEASONS:
+        season = EIHL_CURRENT_SEASON
+    comp = request.args.get("comp", "all")
+    if comp not in (["all"] + EIHL_COMPETITIONS):
+        comp = "all"
+    all_fx   = eihl_queries.get_eihl_all_fixtures(comp, season=season)
+    upcoming = [f for f in all_fx if f["status"] == "scheduled"]
+    results  = [f for f in all_fx if f["status"] != "scheduled"]
+    return render_template(
+        "eihl/fixtures.html",
+        comp=comp, competitions=["all"] + EIHL_COMPETITIONS,
+        comp_labels=EIHL_COMP_LABELS,
+        season=season, seasons=EIHL_SEASONS,
+        upcoming=upcoming, results=results,
+        eihl_short=_eihl_short,
+    )
+
+
+@app.route("/uk-hockey/elite-league/game/<game_id>/")
+def eihl_game_detail(game_id):
+    data = eihl_queries.get_eihl_game_detail(game_id)
+    if data is None:
+        abort(404)
+    fixture      = data["fixture"]
+    events       = data["events"]
+    player_stats = data["player_stats"]
+    goals        = [e for e in events if e["event_type"] == "goal"]
+    penalties    = [e for e in events if e["event_type"] == "penalty"]
+    home_skaters = [p for p in player_stats
+                    if p["team"] == fixture["home_team"] and p["position"] != "GK"]
+    home_goalies = [p for p in player_stats
+                    if p["team"] == fixture["home_team"] and p["position"] == "GK"]
+    away_skaters = [p for p in player_stats
+                    if p["team"] == fixture["away_team"] and p["position"] != "GK"]
+    away_goalies = [p for p in player_stats
+                    if p["team"] == fixture["away_team"] and p["position"] == "GK"]
+    return render_template(
+        "eihl/game_detail.html",
+        fixture=fixture,
+        goals=goals, penalties=penalties,
+        home_skaters=home_skaters, home_goalies=home_goalies,
+        away_skaters=away_skaters, away_goalies=away_goalies,
+        eihl_short=_eihl_short,
+    )
+
+
+@app.route("/uk-hockey/elite-league/standings/")
+def eihl_standings():
+    season = request.args.get("season", EIHL_CURRENT_SEASON)
+    if season not in EIHL_SEASONS:
+        season = EIHL_CURRENT_SEASON
+    comp = request.args.get("comp", "League")
+    if comp not in EIHL_COMPETITIONS:
+        comp = "League"
+    standings = eihl_queries.get_eihl_standings(comp, season=season)
+    return render_template(
+        "eihl/standings.html",
+        comp=comp, competitions=EIHL_COMPETITIONS,
+        comp_labels=EIHL_COMP_LABELS,
+        season=season, seasons=EIHL_SEASONS,
+        standings=standings,
+    )
+
+
+@app.route("/uk-hockey/elite-league/statistics/")
+def eihl_statistics():
+    season = request.args.get("season", EIHL_CURRENT_SEASON)
+    if season not in EIHL_SEASONS:
+        season = EIHL_CURRENT_SEASON
+    comp = request.args.get("comp", "League")
+    if comp not in EIHL_COMPETITIONS:
+        comp = "League"
+    skaters = eihl_queries.get_eihl_skater_stats(comp, season=season)[:10]
+    goalies = eihl_queries.get_eihl_goalie_stats(comp, season=season)[:5]
+    return render_template(
+        "eihl/statistics.html",
+        comp=comp, competitions=EIHL_COMPETITIONS,
+        comp_labels=EIHL_COMP_LABELS,
+        season=season, seasons=EIHL_SEASONS,
+        skaters=skaters, goalies=goalies,
+    )
+
+
+@app.route("/uk-hockey/elite-league/statistics/skaters/")
+def eihl_stats_skaters():
+    season = request.args.get("season", EIHL_CURRENT_SEASON)
+    if season not in EIHL_SEASONS:
+        season = EIHL_CURRENT_SEASON
+    comp = request.args.get("comp", "League")
+    if comp not in EIHL_COMPETITIONS:
+        comp = "League"
+    skaters = eihl_queries.get_eihl_skater_stats(comp, season=season)
+    return render_template(
+        "eihl/stats_skaters.html",
+        comp=comp, competitions=EIHL_COMPETITIONS,
+        comp_labels=EIHL_COMP_LABELS,
+        season=season, seasons=EIHL_SEASONS,
+        skaters=skaters,
+    )
+
+
+@app.route("/uk-hockey/elite-league/statistics/goalies/")
+def eihl_stats_goalies():
+    season = request.args.get("season", EIHL_CURRENT_SEASON)
+    if season not in EIHL_SEASONS:
+        season = EIHL_CURRENT_SEASON
+    comp = request.args.get("comp", "League")
+    if comp not in EIHL_COMPETITIONS:
+        comp = "League"
+    goalies = eihl_queries.get_eihl_goalie_stats(comp, season=season)
+    return render_template(
+        "eihl/stats_goalies.html",
+        comp=comp, competitions=EIHL_COMPETITIONS,
+        comp_labels=EIHL_COMP_LABELS,
+        season=season, seasons=EIHL_SEASONS,
+        goalies=goalies,
+    )
+
 
 @app.errorhandler(404)
 def not_found(e):

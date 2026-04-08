@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}EIHL Statistics – Scottish Ice Hockey News{% endblock %}
+
+{% block content %}
+<h1 class="page-title">EIHL Statistics</h1>
+
+<div class="comp-tabs">
+  {% for c in competitions %}
+    <a href="{{ url_for('eihl_statistics', comp=c, season=season) }}"
+       class="comp-tab {{ 'active' if c == comp else '' }}">
+      {{ comp_labels[c] }}
+    </a>
+  {% endfor %}
+</div>
+
+{% if seasons | length > 1 %}
+<div class="season-selector">
+  <span class="season-label">Season:</span>
+  {% for s in seasons %}
+    <a href="{{ url_for('eihl_statistics', comp=comp, season=s) }}"
+       class="season-tab {{ 'active' if s == season else '' }}">{{ s }}</a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if skaters %}
+  <h2 class="section-title">Top Skaters</h2>
+  <table class="stats-table">
+    <thead>
+      <tr><th>#</th><th>Player</th><th>Team</th><th>Pos</th><th>GP</th><th>G</th><th>A</th><th>PTS</th><th>PIM</th></tr>
+    </thead>
+    <tbody>
+      {% for s in skaters %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ s.player_name }}</td>
+        <td>{{ s.team }}</td>
+        <td>{{ s.position or '' }}</td>
+        <td>{{ s.gp or '' }}</td>
+        <td>{{ s.g or 0 }}</td>
+        <td>{{ s.a or 0 }}</td>
+        <td><strong>{{ s.pts or 0 }}</strong></td>
+        <td>{{ s.pim or 0 }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div class="standings-more">
+    <a href="{{ url_for('eihl_stats_skaters', comp=comp, season=season) }}">Full skater stats →</a>
+  </div>
+{% endif %}
+
+{% if goalies %}
+  <h2 class="section-title mt-2">Top Goalies</h2>
+  <table class="stats-table">
+    <thead>
+      <tr><th>#</th><th>Player</th><th>Team</th><th>GP</th><th>W</th><th>GAA</th><th>SVS%</th><th>SO</th></tr>
+    </thead>
+    <tbody>
+      {% for g in goalies %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ g.player_name }}</td>
+        <td>{{ g.team }}</td>
+        <td>{{ g.gp or '' }}</td>
+        <td>{{ g.w or 0 }}</td>
+        <td>{{ "%.2f"|format(g.gaa) if g.gaa is not none else '–' }}</td>
+        <td>{{ "%.3f"|format(g.svs_pct) if g.svs_pct is not none else '–' }}</td>
+        <td>{{ g.so or 0 }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div class="standings-more">
+    <a href="{{ url_for('eihl_stats_goalies', comp=comp, season=season) }}">Full goalie stats →</a>
+  </div>
+{% endif %}
+
+{% if not skaters and not goalies %}
+  <p class="no-data">No statistics available. Run the EIHL scraper first.</p>
+{% endif %}
+{% endblock %}

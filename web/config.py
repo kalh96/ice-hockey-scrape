@@ -96,9 +96,38 @@ TEAM_DISPLAY = {
 # Reverse lookup: URL slug → DB team name
 TEAM_BY_SLUG = {v["slug"]: k for k, v in TEAM_DISPLAY.items()}
 
+# ---------------------------------------------------------------------------
+# EIHL configuration
+# ---------------------------------------------------------------------------
+
+EIHL_CURRENT_SEASON = "2025-26"
+EIHL_SEASONS        = ["2025-26"]
+EIHL_COMPETITIONS   = ["League", "Cup"]
+
+# Display names for EIHL competition tabs
+EIHL_COMP_LABELS = {
+    "League": "Elite Ice Hockey League",
+    "Cup":    "Challenge Cup",
+}
+
+# Maps DB team name → display info for the 10 EIHL teams.
+# Logos can be added later (place PNGs in web/static/img/eihl/).
+EIHL_TEAM_DISPLAY = {
+    "Belfast Giants":      {"full": "Belfast Giants",      "short": "Giants",   "slug": "belfast-giants"},
+    "Cardiff Devils":      {"full": "Cardiff Devils",      "short": "Devils",   "slug": "cardiff-devils"},
+    "Coventry Blaze":      {"full": "Coventry Blaze",      "short": "Blaze",    "slug": "coventry-blaze"},
+    "Dundee Stars":        {"full": "Dundee Stars",        "short": "Stars",    "slug": "dundee-stars"},
+    "Fife Flyers":         {"full": "Fife Flyers",         "short": "Flyers",   "slug": "fife-flyers"},
+    "Glasgow Clan":        {"full": "Glasgow Clan",        "short": "Clan",     "slug": "glasgow-clan"},
+    "Guildford Flames":    {"full": "Guildford Flames",    "short": "Flames",   "slug": "guildford-flames"},
+    "Manchester Storm":    {"full": "Manchester Storm",    "short": "Storm",    "slug": "manchester-storm"},
+    "Nottingham Panthers": {"full": "Nottingham Panthers", "short": "Panthers", "slug": "nottingham-panthers"},
+    "Sheffield Steelers":  {"full": "Sheffield Steelers",  "short": "Steelers", "slug": "sheffield-steelers"},
+}
+
 # Bump this string whenever you push CSS/JS changes to force Cloudflare to
 # fetch the new file instead of serving a stale cached copy.
-STATIC_VERSION = "20260406-6"
+STATIC_VERSION = "20260408-1"
 
 # Scottish Cup 2025-26 bracket structure.
 # Each round lists matchups; each matchup is a list of event IDs (leg 1, leg 2).
