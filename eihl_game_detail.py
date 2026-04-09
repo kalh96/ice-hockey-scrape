@@ -267,14 +267,27 @@ def parse_events_page(soup: BeautifulSoup, home_team: str, away_team: str) -> li
                     "penalty_minutes": mins,
                 })
 
-    # Deduplicate: drop events with identical (type, team, player, time)
-    seen = set()
-    deduped = []
+    # Deduplicate: the parser may encounter the same event in both a parent
+    # container (period/team=None) and the actual event div (period/team set).
+    # Group by (type, player, time) and keep the most-informative version.
+    from collections import defaultdict
+    grouped: dict[tuple, list] = defaultdict(list)
     for ev in events:
-        key = (ev["event_type"], ev["player_id"], ev["time_in_period"], ev["period"])
-        if key not in seen:
-            seen.add(key)
-            deduped.append(ev)
+        base_key = (
+            ev["event_type"],
+            ev["player_id"] or ev["player_name"],
+            ev["time_in_period"],
+        )
+        grouped[base_key].append(ev)
+
+    deduped = []
+    for evs in grouped.values():
+        best = max(evs, key=lambda e: (
+            e["period"] is not None,
+            e["team"] is not None,
+            e["assist1_name"] is not None,
+        ))
+        deduped.append(best)
 
     logger.debug("Parsed %d events (%d after dedup)", len(events), len(deduped))
     return deduped
