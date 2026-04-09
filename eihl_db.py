@@ -201,7 +201,11 @@ def upsert_fixture(conn: sqlite3.Connection, **kw) -> None:
         VALUES (:game_id, :season, :competition, :phase, :date, :home_team, :away_team,
                 :home_score, :away_score, :status, :game_url, :scraped_at)
         ON CONFLICT(game_id) DO UPDATE SET
-            phase      = COALESCE(excluded.phase, eihl_fixtures.phase),
+            phase      = CASE
+                             WHEN eihl_fixtures.phase IN ('playoff', 'knockout')
+                             THEN eihl_fixtures.phase
+                             ELSE COALESCE(excluded.phase, eihl_fixtures.phase)
+                         END,
             date       = COALESCE(excluded.date, eihl_fixtures.date),
             home_score = excluded.home_score,
             away_score = excluded.away_score,

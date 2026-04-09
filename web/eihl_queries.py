@@ -78,7 +78,7 @@ def get_eihl_all_fixtures(competition="all", season=EIHL_CURRENT_SEASON):
             FROM eihl_fixtures
             WHERE season = ?
               AND (? = 'all' OR competition = ?)
-            ORDER BY status ASC,
+            ORDER BY CASE WHEN status = 'scheduled' THEN 1 ELSE 0 END ASC,
                      COALESCE(date, '0') DESC,
                      CAST(game_id AS INTEGER) DESC
             """,

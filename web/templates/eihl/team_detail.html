@@ -134,14 +134,14 @@
   {% endif %}
 {% endif %}
 
+{# Upcoming + Results side by side #}
 <div class="two-col-layout mt-2">
 
   <div class="two-col-main">
-
+    <h2 class="section-title">Upcoming Fixtures</h2>
     {% if upcoming %}
-      <h2 class="section-title">Upcoming Fixtures</h2>
       <div class="result-list">
-        {% for f in upcoming %}
+        {% for f in upcoming[:5] %}
           <a href="{{ url_for('eihl_game_detail', game_id=f.game_id) }}" class="result-card-link">
             <div class="result-card">
               <div class="team-home {{ 'team-highlight' if f.home_team == team_name else '' }}">
@@ -159,12 +159,16 @@
           </a>
         {% endfor %}
       </div>
+    {% else %}
+      <p class="no-data">No upcoming fixtures.</p>
     {% endif %}
+  </div>
 
+  <div class="two-col-sidebar">
+    <h2 class="section-title">Recent Results</h2>
     {% if results %}
-      <h2 class="section-title {{ 'mt-2' if upcoming else '' }}">Results</h2>
       <div class="result-list">
-        {% for f in results %}
+        {% for f in results[:5] %}
           <a href="{{ url_for('eihl_game_detail', game_id=f.game_id) }}" class="result-card-link">
             <div class="result-card">
               <div class="team-home {{ 'team-highlight' if f.home_team == team_name else '' }}">
@@ -183,39 +187,39 @@
           </a>
         {% endfor %}
       </div>
+    {% else %}
+      <p class="no-data">No results yet.</p>
     {% endif %}
-
-    {% if not results and not upcoming %}
-      <p class="no-data">No fixture data found for this team.</p>
-    {% endif %}
-
   </div>
-
-  {% if skaters %}
-  <div class="two-col-sidebar">
-    <h2 class="section-title">Top Scorers</h2>
-    <table class="stats-table">
-      <thead>
-        <tr>
-          <th class="player-col">Player</th>
-          <th>Pos</th><th>GP</th><th>G</th><th>A</th><th>PTS</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for p in skaters[:10] %}
-          <tr>
-            <td class="player-col">{{ p.player_name }}</td>
-            <td>{{ p.position }}</td>
-            <td>{{ p.gp }}</td>
-            <td>{{ p.g }}</td>
-            <td>{{ p.a }}</td>
-            <td><strong>{{ p.pts }}</strong></td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% endif %}
 
 </div>
+
+{# Skater stats below #}
+{% if skaters %}
+<div class="mt-2">
+  <h2 class="section-title">Top Scorers</h2>
+  <div class="table-scroll">
+  <table class="stats-table">
+    <thead>
+      <tr>
+        <th class="player-col">Player</th>
+        <th>Pos</th><th>GP</th><th>G</th><th>A</th><th>PTS</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in skaters[:10] %}
+        <tr>
+          <td class="player-col">{{ p.player_name }}</td>
+          <td>{{ p.position }}</td>
+          <td>{{ p.gp }}</td>
+          <td>{{ p.g }}</td>
+          <td>{{ p.a }}</td>
+          <td><strong>{{ p.pts }}</strong></td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endif %}
 {% endblock %}
