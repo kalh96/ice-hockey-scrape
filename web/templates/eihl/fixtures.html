@@ -23,46 +23,172 @@
 </div>
 {% endif %}
 
-{% if upcoming %}
-  <h2 class="section-title">Upcoming</h2>
-  <div class="result-list">
-    {% for f in upcoming %}
-      <a href="{{ url_for('eihl_game_detail', game_id=f.game_id) }}" class="result-card-link">
-        <div class="result-card">
-          <div class="team-home">{{ eihl_short(f.home_team) }}</div>
-          <div class="result-card-centre">
-            <div class="score upcoming-score">vs</div>
-            {% if f.date %}<div class="meta">{{ f.date }}</div>{% endif %}
-            {% if comp == 'all' %}<div class="meta"><span class="badge">{{ comp_labels.get(f.competition, f.competition) }}</span></div>{% endif %}
-          </div>
-          <div class="team-away">{{ eihl_short(f.away_team) }}</div>
-        </div>
-      </a>
-    {% endfor %}
-  </div>
-{% endif %}
+{# ── ALL tab: flat upcoming + results ─────────────────────────────────────── #}
+{% if comp == 'all' %}
 
-{% if results %}
-  <h2 class="section-title mt-2">Results</h2>
-  <div class="result-list">
-    {% for f in results %}
-      <a href="{{ url_for('eihl_game_detail', game_id=f.game_id) }}" class="result-card-link">
-        <div class="result-card">
-          <div class="team-home">{{ eihl_short(f.home_team) }}</div>
-          <div class="result-card-centre">
-            <div class="score">{{ f.home_score }} – {{ f.away_score }}</div>
-            {% if f.date %}<div class="meta">{{ f.date }}</div>{% endif %}
-            {% if f.status != 'final' %}<div class="meta"><span class="badge">{{ f.status }}</span></div>{% endif %}
-            {% if comp == 'all' %}<div class="meta"><span class="badge">{{ comp_labels.get(f.competition, f.competition) }}</span></div>{% endif %}
-          </div>
-          <div class="team-away">{{ eihl_short(f.away_team) }}</div>
-        </div>
-      </a>
-    {% endfor %}
-  </div>
-{% endif %}
+  {% set all_upcoming = regular_upcoming + playoff_upcoming %}
+  {% set all_results  = regular_results  + playoff_results  %}
 
-{% if not upcoming and not results %}
-  <p class="no-data">No fixtures found.</p>
+  {% if all_upcoming %}
+    <h2 class="section-title">Upcoming</h2>
+    <div class="result-list">
+      {% for f in all_upcoming %}
+        <a href="{{ url_for('eihl_game_detail', game_id=f.game_id) }}" class="result-card-link">
+          <div class="result-card">
+            <div class="team-home">{{ eihl_short(f.home_team) }}</div>
+            <div class="result-card-centre">
+              <div class="score upcoming-score">vs</div>
+              {% if f.date %}<div class="meta">{{ f.date }}</div>{% endif %}
+              <div class="meta"><span class="badge">{{ comp_labels.get(f.competition, f.competition) }}</span></div>
+            </div>
+            <div class="team-away">{{ eihl_short(f.away_team) }}</div>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if all_results %}
+    <h2 class="section-title mt-2">Results</h2>
+    <div class="result-list">
+      {% for f in all_results %}
+        <a href="{{ url_for('eihl_game_detail', game_id=f.game_id) }}" class="result-card-link">
+          <div class="result-card">
+            <div class="team-home">{{ eihl_short(f.home_team) }}</div>
+            <div class="result-card-centre">
+              <div class="score">{{ f.home_score }} – {{ f.away_score }}</div>
+              {% if f.date %}<div class="meta">{{ f.date }}</div>{% endif %}
+              {% if f.status != 'final' %}<div class="meta"><span class="badge">{{ f.status }}</span></div>{% endif %}
+              <div class="meta"><span class="badge">{{ comp_labels.get(f.competition, f.competition) }}</span></div>
+            </div>
+            <div class="team-away">{{ eihl_short(f.away_team) }}</div>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if not all_upcoming and not all_results %}
+    <p class="no-data">No fixtures found.</p>
+  {% endif %}
+
+{# ── LEAGUE or CUP tab: phase-split display with bracket ─────────────────── #}
+{% else %}
+
+  {# Bracket (play-offs / knockout) #}
+  {% if bracket %}
+    <h2 class="section-title">{{ bracket_title }}</h2>
+    <div class="bracket">
+      {% for rnd in bracket %}
+        <div class="bracket-round">
+          <div class="bracket-round-name">{{ rnd.name }}</div>
+          <div class="bracket-slots">
+            {% for m in rnd.matchups %}
+              <div class="bracket-slot">
+                <div class="bracket-match">
+
+                  <div class="bracket-team {{ 'winner' if m.winner == m.team1 else ('loser' if m.winner else '') }}">
+                    <span class="bracket-team-name">{{ m.team1 | eihl_short }}</span>
+                    {% if m.t1_agg is not none %}
+                      <span class="bracket-agg">{{ m.t1_agg }}</span>
+                    {% endif %}
+                  </div>
+                  <div class="bracket-team {{ 'winner' if m.winner == m.team2 else ('loser' if m.winner else '') }}">
+                    <span class="bracket-team-name">{{ m.team2 | eihl_short }}</span>
+                    {% if m.t2_agg is not none %}
+                      <span class="bracket-agg">{{ m.t2_agg }}</span>
+                    {% endif %}
+                  </div>
+
+                  {% if m.status == 'final' and m.legs | length >= 2 %}
+                    <div class="bracket-legs">
+                      {% for leg in m.legs %}
+                        <a href="{{ url_for('eihl_game_detail', game_id=leg.game_id) }}" class="bracket-leg-link">
+                          {{ leg.home_team | eihl_short }} {{ leg.home_score }}–{{ leg.away_score }} {{ leg.away_team | eihl_short }}
+                        </a>
+                      {% endfor %}
+                    </div>
+                  {% elif m.status == 'final' and m.legs %}
+                    <div class="bracket-legs">
+                      <a href="{{ url_for('eihl_game_detail', game_id=m.legs[0].game_id) }}" class="bracket-leg-link">
+                        {{ m.legs[0].home_team | eihl_short }} {{ m.t1_agg }}–{{ m.t2_agg }} {{ m.legs[0].away_team | eihl_short }}
+                      </a>
+                    </div>
+                  {% elif m.status == 'scheduled' and m.date %}
+                    <div class="bracket-date">{{ m.date }}</div>
+                  {% endif %}
+
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {# Upcoming play-off / knockout fixtures #}
+  {% if playoff_upcoming %}
+    <h2 class="section-title">Upcoming {{ 'Play-offs' if comp == 'League' else 'Knockout' }}</h2>
+    <div class="result-list">
+      {% for f in playoff_upcoming %}
+        <a href="{{ url_for('eihl_game_detail', game_id=f.game_id) }}" class="result-card-link">
+          <div class="result-card">
+            <div class="team-home">{{ eihl_short(f.home_team) }}</div>
+            <div class="result-card-centre">
+              <div class="score upcoming-score">vs</div>
+              {% if f.date %}<div class="meta">{{ f.date }}</div>{% endif %}
+            </div>
+            <div class="team-away">{{ eihl_short(f.away_team) }}</div>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {# Play-off / knockout results #}
+  {% if playoff_results %}
+    <h2 class="section-title mt-2">{{ 'Play-off' if comp == 'League' else 'Knockout' }} Results</h2>
+    <div class="result-list">
+      {% for f in playoff_results %}
+        <a href="{{ url_for('eihl_game_detail', game_id=f.game_id) }}" class="result-card-link">
+          <div class="result-card">
+            <div class="team-home">{{ eihl_short(f.home_team) }}</div>
+            <div class="result-card-centre">
+              <div class="score">{{ f.home_score }} – {{ f.away_score }}</div>
+              {% if f.date %}<div class="meta">{{ f.date }}</div>{% endif %}
+              {% if f.status != 'final' %}<div class="meta"><span class="badge">{{ f.status }}</span></div>{% endif %}
+            </div>
+            <div class="team-away">{{ eihl_short(f.away_team) }}</div>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {# Regular season / group stage results #}
+  {% if regular_results %}
+    <h2 class="section-title mt-2">{{ 'Regular Season' if comp == 'League' else 'Group Stage' }} Results</h2>
+    <div class="result-list">
+      {% for f in regular_results %}
+        <a href="{{ url_for('eihl_game_detail', game_id=f.game_id) }}" class="result-card-link">
+          <div class="result-card">
+            <div class="team-home">{{ eihl_short(f.home_team) }}</div>
+            <div class="result-card-centre">
+              <div class="score">{{ f.home_score }} – {{ f.away_score }}</div>
+              {% if f.date %}<div class="meta">{{ f.date }}</div>{% endif %}
+              {% if f.status != 'final' %}<div class="meta"><span class="badge">{{ f.status }}</span></div>{% endif %}
+            </div>
+            <div class="team-away">{{ eihl_short(f.away_team) }}</div>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if not regular_results and not playoff_results and not regular_upcoming and not playoff_upcoming %}
+    <p class="no-data">No fixtures found.</p>
+  {% endif %}
+
 {% endif %}
 {% endblock %}

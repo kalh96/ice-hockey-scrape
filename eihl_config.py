@@ -17,6 +17,12 @@ EIHL_CUP_STAGE_ID    = 2   # TODO: verify this is correct for Challenge Cup stat
 CURRENT_SEASON = "2025-26"
 EIHL_SEASONS   = ["2025-26"]
 
+# First date of EIHL League play-off games (used to classify scraped fixtures)
+EIHL_LEAGUE_PLAYOFF_START = "2026-04-11"
+
+# Cup game IDs that are knockout-phase (elimination, SF, Final) — not group stage
+EIHL_CUP_KNOCKOUT_GAME_IDS: set[str] = {"5037", "5038", "5039", "5040", "5041", "5042"}
+
 # Path to the shared SQLite database
 DB_PATH = "siha.db"
 

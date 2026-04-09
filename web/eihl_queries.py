@@ -60,7 +60,7 @@ def get_eihl_all_fixtures(competition="all", season=EIHL_CURRENT_SEASON):
         rows = conn.execute(
             """
             SELECT game_id, date, home_team, away_team, home_score, away_score,
-                   status, competition
+                   status, competition, phase
             FROM eihl_fixtures
             WHERE season = ?
               AND (? = 'all' OR competition = ?)
@@ -71,6 +71,31 @@ def get_eihl_all_fixtures(competition="all", season=EIHL_CURRENT_SEASON):
             (season, competition, competition),
         ).fetchall()
         return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def get_eihl_fixtures_by_ids(game_ids: list[str]) -> dict:
+    """Return {game_id: fixture dict} for the given list of EIHL game IDs."""
+    if not game_ids:
+        return {}
+    conn = _conn()
+    try:
+        placeholders = ",".join("?" * len(game_ids))
+        rows = conn.execute(
+            f"""
+            SELECT game_id, date, status, home_team, away_team, home_score, away_score
+            FROM eihl_fixtures
+            WHERE game_id IN ({placeholders})
+            """,
+            game_ids,
+        ).fetchall()
+        result = {}
+        for r in rows:
+            d = dict(r)
+            d["event_id"] = d["game_id"]  # alias for bracket builder compatibility
+            result[d["game_id"]] = d
+        return result
     finally:
         conn.close()
 

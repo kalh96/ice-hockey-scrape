@@ -20,6 +20,7 @@ def init_eihl_schema(conn: sqlite3.Connection) -> None:
             game_id     TEXT PRIMARY KEY,
             season      TEXT NOT NULL DEFAULT '2025-26',
             competition TEXT NOT NULL,          -- 'League' or 'Cup'
+            phase       TEXT,                   -- 'regular'/'playoff' (League); 'group'/'knockout' (Cup)
             date        TEXT,                   -- ISO YYYY-MM-DD HH:MM
             home_team   TEXT NOT NULL,
             away_team   TEXT NOT NULL,
@@ -159,6 +160,7 @@ def init_eihl_schema(conn: sqlite3.Connection) -> None:
 
     # Migrations: add columns that didn't exist in the initial schema
     _add_column_if_missing(conn, "eihl_standings", "qualifier", "TEXT")
+    _add_column_if_missing(conn, "eihl_fixtures", "phase", "TEXT")
 
     # Migration: fix NULL group_name rows (SQLite NULL != NULL breaks UNIQUE upsert)
     # Step 1: remove old-format rows where qualifier wasn't stripped (team starts with digit)
@@ -190,14 +192,16 @@ def _add_column_if_missing(conn: sqlite3.Connection, table: str, column: str, co
 # ---------------------------------------------------------------------------
 
 def upsert_fixture(conn: sqlite3.Connection, **kw) -> None:
+    kw.setdefault("phase", None)
     conn.execute(
         """
         INSERT INTO eihl_fixtures
-            (game_id, season, competition, date, home_team, away_team,
+            (game_id, season, competition, phase, date, home_team, away_team,
              home_score, away_score, status, game_url, scraped_at)
-        VALUES (:game_id, :season, :competition, :date, :home_team, :away_team,
+        VALUES (:game_id, :season, :competition, :phase, :date, :home_team, :away_team,
                 :home_score, :away_score, :status, :game_url, :scraped_at)
         ON CONFLICT(game_id) DO UPDATE SET
+            phase      = COALESCE(excluded.phase, eihl_fixtures.phase),
             date       = COALESCE(excluded.date, eihl_fixtures.date),
             home_score = excluded.home_score,
             away_score = excluded.away_score,

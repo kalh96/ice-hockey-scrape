@@ -128,6 +128,63 @@ EIHL_TEAM_DISPLAY = {
 # Reverse mapping: EIHL slug → DB team name
 EIHL_SLUG_TO_TEAM = {info["slug"]: name for name, info in EIHL_TEAM_DISPLAY.items()}
 
+# EIHL League Play-offs 2025-26 bracket
+# QF: 4 two-legged matchups (Apr 11-12); SF: one-leg (Apr 18); Final: one-leg (Apr 19)
+# SF/Final game_ids are synthetic placeholders — replaced once QF results are known.
+EIHL_PLAYOFFS_BRACKET = [
+    {
+        "name": "Quarter-Finals",
+        "matchups": [
+            ["5050", "5054"],  # Belfast Giants vs Glasgow Clan
+            ["5053", "5049"],  # Coventry Blaze vs Cardiff Devils
+            ["5052", "5047"],  # Manchester Storm vs Nottingham Panthers
+            ["5051", "5048"],  # Guildford Flames vs Sheffield Steelers
+        ],
+    },
+    {
+        "name": "Semi-Finals",
+        "matchups": [
+            ["80000021"],  # TBD vs TBD — Apr 18
+            ["80000022"],  # TBD vs TBD — Apr 18
+        ],
+    },
+    {
+        "name": "Final",
+        "matchups": [
+            ["80000031"],  # TBD vs TBD — Apr 19
+        ],
+    },
+]
+
+# EIHL Challenge Cup 2025-26 bracket (knockout phase only — group stage shown separately)
+# Groups: A = Sheffield, Coventry, Nottingham, Cardiff, Manchester, Guildford
+#         B = Belfast, Glasgow, Dundee, Fife
+# Elimination game (B2 vs A3): Glasgow 1-4 Nottingham → Nottingham advances
+# SF1: Nottingham vs Sheffield — Nottingham wins 5-4 agg
+# SF2: Coventry vs Belfast — Coventry wins 9-5 agg
+# Final: Nottingham Panthers 3-2 OT Coventry Blaze → Nottingham Panthers win
+EIHL_CUP_BRACKET = [
+    {
+        "name": "Elimination Game",
+        "matchups": [
+            ["5037"],  # Glasgow Clan 1-4 Nottingham Panthers
+        ],
+    },
+    {
+        "name": "Semi-Finals",
+        "matchups": [
+            ["5040", "5041"],  # Nottingham Panthers vs Sheffield Steelers
+            ["5038", "5039"],  # Coventry Blaze vs Belfast Giants
+        ],
+    },
+    {
+        "name": "Final",
+        "matchups": [
+            ["5042"],  # Nottingham Panthers 3-2 OT Coventry Blaze
+        ],
+    },
+]
+
 # ---------------------------------------------------------------------------
 # WNIHL configuration
 # ---------------------------------------------------------------------------
@@ -144,7 +201,7 @@ WNIHL_COMP_LABELS = {
 
 # Bump this string whenever you push CSS/JS changes to force Cloudflare to
 # fetch the new file instead of serving a stale cached copy.
-STATIC_VERSION = "20260408-6"
+STATIC_VERSION = "20260409-1"
 
 # Scottish Cup 2025-26 bracket structure.
 # Each round lists matchups; each matchup is a list of event IDs (leg 1, leg 2).
@@ -198,7 +255,7 @@ CUP_BRACKET = [
     {
         "name": "Final",
         "matchups": [
-            [90000001],                # Caps vs Warriors
+            [1989416961],              # Warriors vs Caps (Apr 11)
         ],
     },
 ]

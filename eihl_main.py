@@ -27,6 +27,7 @@ from eihl_config import (
     BASE_URL, CURRENT_SEASON, DB_PATH,
     EIHL_LEAGUE_SEASON_ID, EIHL_CUP_SEASON_ID,
     EIHL_LEAGUE_STAGE_ID,  EIHL_CUP_STAGE_ID,
+    EIHL_LEAGUE_PLAYOFF_START, EIHL_CUP_KNOCKOUT_GAME_IDS,
 )
 from eihl_scraper import get_soup
 
@@ -66,6 +67,12 @@ def run_fixtures_pass(conn: sqlite3.Connection) -> None:
     for competition, url in [("League", SCHEDULE_URL_LEAGUE), ("Cup", SCHEDULE_URL_CUP)]:
         fixtures = fixtures_mod.scrape_all_months(get_soup, url, competition, CURRENT_SEASON)
         for f in fixtures:
+            # Determine phase for phase-aware display
+            if competition == "League":
+                d = f.get("date") or ""
+                f["phase"] = "playoff" if d >= EIHL_LEAGUE_PLAYOFF_START else "regular"
+            else:  # Cup
+                f["phase"] = "knockout" if f["game_id"] in EIHL_CUP_KNOCKOUT_GAME_IDS else "group"
             eihl_db.upsert_fixture(conn, **f)
         conn.commit()
         logger.info("[%s] Upserted %d fixtures", competition, len(fixtures))

@@ -24,6 +24,58 @@
 </div>
 {% endif %}
 
+{# Bracket for play-offs / Cup knockout #}
+{% if bracket %}
+  <h2 class="section-title">{{ bracket_title }}</h2>
+  <div class="bracket">
+    {% for rnd in bracket %}
+      <div class="bracket-round">
+        <div class="bracket-round-name">{{ rnd.name }}</div>
+        <div class="bracket-slots">
+          {% for m in rnd.matchups %}
+            <div class="bracket-slot">
+              <div class="bracket-match">
+
+                <div class="bracket-team {{ 'winner' if m.winner == m.team1 else ('loser' if m.winner else '') }}">
+                  <span class="bracket-team-name">{{ m.team1 | eihl_short }}</span>
+                  {% if m.t1_agg is not none %}
+                    <span class="bracket-agg">{{ m.t1_agg }}</span>
+                  {% endif %}
+                </div>
+                <div class="bracket-team {{ 'winner' if m.winner == m.team2 else ('loser' if m.winner else '') }}">
+                  <span class="bracket-team-name">{{ m.team2 | eihl_short }}</span>
+                  {% if m.t2_agg is not none %}
+                    <span class="bracket-agg">{{ m.t2_agg }}</span>
+                  {% endif %}
+                </div>
+
+                {% if m.status == 'final' and m.legs | length >= 2 %}
+                  <div class="bracket-legs">
+                    {% for leg in m.legs %}
+                      <a href="{{ url_for('eihl_game_detail', game_id=leg.game_id) }}" class="bracket-leg-link">
+                        {{ leg.home_team | eihl_short }} {{ leg.home_score }}–{{ leg.away_score }} {{ leg.away_team | eihl_short }}
+                      </a>
+                    {% endfor %}
+                  </div>
+                {% elif m.status == 'final' and m.legs %}
+                  <div class="bracket-legs">
+                    <a href="{{ url_for('eihl_game_detail', game_id=m.legs[0].game_id) }}" class="bracket-leg-link">
+                      {{ m.legs[0].home_team | eihl_short }} {{ m.t1_agg }}–{{ m.t2_agg }} {{ m.legs[0].away_team | eihl_short }}
+                    </a>
+                  </div>
+                {% elif m.status == 'scheduled' and m.date %}
+                  <div class="bracket-date">{{ m.date }}</div>
+                {% endif %}
+
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
 <div class="two-col-layout">
 
   {# Left: Results + Upcoming #}

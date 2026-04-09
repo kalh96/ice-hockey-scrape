@@ -16,6 +16,7 @@ from config import (
     SEASONS, STATIC_VERSION, TEAM_BY_SLUG, TEAM_DISPLAY,
     EIHL_COMPETITIONS, EIHL_COMP_LABELS, EIHL_CURRENT_SEASON, EIHL_SEASONS,
     EIHL_TEAM_DISPLAY, EIHL_SLUG_TO_TEAM,
+    EIHL_PLAYOFFS_BRACKET, EIHL_CUP_BRACKET,
     WNIHL_COMPETITIONS, WNIHL_COMP_LABELS, WNIHL_CURRENT_SEASON, WNIHL_SEASONS,
 )
 
@@ -61,6 +62,12 @@ def eihl_logo_filter(db_name):
 def eihl_slug_filter(db_name):
     """EIHL DB team name → URL slug (e.g. 'Belfast Giants' → 'belfast-giants')."""
     return EIHL_TEAM_DISPLAY.get(db_name, {}).get("slug", "")
+
+
+@app.template_filter("eihl_short")
+def eihl_short_filter(db_name):
+    """EIHL DB team name → short nickname (e.g. 'Belfast Giants' → 'Giants')."""
+    return EIHL_TEAM_DISPLAY.get(db_name, {}).get("short", db_name)
 
 
 @app.template_filter("wnihl_slug")
@@ -666,6 +673,13 @@ def _eihl_short(db_name: str) -> str:
     return EIHL_TEAM_DISPLAY.get(db_name, {}).get("short", db_name)
 
 
+def _build_eihl_bracket(bracket_def):
+    """Build a renderable bracket for EIHL using eihl_fixtures game IDs (strings)."""
+    all_ids = [gid for rd in bracket_def for leg in rd["matchups"] for gid in leg]
+    fixtures_by_id = eihl_queries.get_eihl_fixtures_by_ids(all_ids)
+    return _build_cup_bracket(fixtures_by_id, bracket_def)
+
+
 @app.route("/uk-hockey/elite-league/")
 def eihl_overview():
     season = request.args.get("season", EIHL_CURRENT_SEASON)
@@ -677,12 +691,22 @@ def eihl_overview():
     recent    = eihl_queries.get_eihl_recent_results(comp, season=season, limit=8)
     upcoming  = eihl_queries.get_eihl_upcoming_fixtures(comp, season=season, limit=5)
     standings = eihl_queries.get_eihl_standings(comp, season=season)
+
+    bracket = bracket_title = None
+    if comp == "League":
+        bracket = _build_eihl_bracket(EIHL_PLAYOFFS_BRACKET)
+        bracket_title = f"{season} EIHL Play-offs"
+    elif comp == "Cup":
+        bracket = _build_eihl_bracket(EIHL_CUP_BRACKET)
+        bracket_title = f"{season} Challenge Cup Knockout"
+
     return render_template(
         "eihl/overview.html",
         comp=comp, competitions=EIHL_COMPETITIONS,
         comp_labels=EIHL_COMP_LABELS,
         season=season, seasons=EIHL_SEASONS,
         recent=recent, upcoming=upcoming, standings=standings,
+        bracket=bracket, bracket_title=bracket_title,
         eihl_short=_eihl_short,
     )
 
@@ -695,15 +719,30 @@ def eihl_fixtures():
     comp = request.args.get("comp", "all")
     if comp not in (["all"] + EIHL_COMPETITIONS):
         comp = "all"
-    all_fx   = eihl_queries.get_eihl_all_fixtures(comp, season=season)
-    upcoming = [f for f in all_fx if f["status"] == "scheduled"]
-    results  = [f for f in all_fx if f["status"] != "scheduled"]
+    all_fx = eihl_queries.get_eihl_all_fixtures(comp, season=season)
+
+    # Split fixtures by phase for League/Cup tabs
+    regular_results  = [f for f in all_fx if f["status"] != "scheduled" and f.get("phase") in ("regular", "group", None)]
+    playoff_results  = [f for f in all_fx if f["status"] != "scheduled" and f.get("phase") in ("playoff", "knockout")]
+    regular_upcoming = [f for f in all_fx if f["status"] == "scheduled" and f.get("phase") in ("regular", "group", None)]
+    playoff_upcoming = [f for f in all_fx if f["status"] == "scheduled" and f.get("phase") in ("playoff", "knockout")]
+
+    bracket = bracket_title = None
+    if comp == "League":
+        bracket = _build_eihl_bracket(EIHL_PLAYOFFS_BRACKET)
+        bracket_title = f"{season} EIHL Play-offs"
+    elif comp == "Cup":
+        bracket = _build_eihl_bracket(EIHL_CUP_BRACKET)
+        bracket_title = f"{season} Challenge Cup Knockout"
+
     return render_template(
         "eihl/fixtures.html",
         comp=comp, competitions=["all"] + EIHL_COMPETITIONS,
         comp_labels=EIHL_COMP_LABELS,
         season=season, seasons=EIHL_SEASONS,
-        upcoming=upcoming, results=results,
+        regular_results=regular_results, playoff_results=playoff_results,
+        regular_upcoming=regular_upcoming, playoff_upcoming=playoff_upcoming,
+        bracket=bracket, bracket_title=bracket_title,
         eihl_short=_eihl_short,
     )
 

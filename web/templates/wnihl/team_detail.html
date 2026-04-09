@@ -76,7 +76,7 @@
           <div class="result-card">
             <div class="team-home {{ 'team-highlight' if f.home_team == team_name else '' }}">{{ f.home_team }}</div>
             <div class="result-card-centre">
-              <div class="score">{{ f.home_score }} – {{ f.away_score }}</div>
+              <div class="score">{{ f.home_score if f.home_score is not none else '?' }} – {{ f.away_score if f.away_score is not none else '?' }}</div>
               {% if f.date %}<div class="meta">{{ f.date[:10] }}</div>{% endif %}
             </div>
             <div class="team-away {{ 'team-highlight' if f.away_team == team_name else '' }}">{{ f.away_team }}</div>
