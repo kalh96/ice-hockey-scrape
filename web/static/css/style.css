@@ -452,6 +452,19 @@ tbody tr:last-child td { border-bottom: none; }
   border-bottom-color: var(--bg);
 }
 
+/* Phase sub-tabs (smaller, secondary level) */
+.phase-tabs {
+  margin-top: -1rem;
+  margin-bottom: 1.25rem;
+  border-bottom-color: var(--border-light, #e5e7eb);
+}
+
+.phase-tabs .comp-tab {
+  font-size: 0.8rem;
+  padding: 0.35rem 1rem;
+  font-weight: 500;
+}
+
 /* Stats sub-nav */
 .stats-nav {
   display: flex;

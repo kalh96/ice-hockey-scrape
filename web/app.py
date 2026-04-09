@@ -277,18 +277,34 @@ def _build_cup_bracket(fixtures_by_id, bracket_def=None):
             team1 = leg1['home_team']
             team2 = leg1['away_team']
             if len(legs) >= 2:
-                t1_agg = sum(goals_for(team1, l) for l in legs)
-                t2_agg = sum(goals_for(team2, l) for l in legs)
-                winner = team1 if t1_agg > t2_agg else (team2 if t2_agg > t1_agg else None)
-                matchups.append({
-                    'team1': team1, 'team2': team2,
-                    't1_agg': t1_agg, 't2_agg': t2_agg,
-                    'winner': winner, 'legs': legs, 'status': 'final',
-                })
+                done_legs    = [l for l in legs if l['status'].startswith('final')]
+                pending_legs = [l for l in legs if not l['status'].startswith('final')]
+                all_done = not pending_legs
+                if all_done:
+                    t1_agg = sum(goals_for(team1, l) for l in legs)
+                    t2_agg = sum(goals_for(team2, l) for l in legs)
+                    winner = team1 if t1_agg > t2_agg else (team2 if t2_agg > t1_agg else None)
+                    matchups.append({
+                        'team1': team1, 'team2': team2,
+                        't1_agg': t1_agg, 't2_agg': t2_agg,
+                        'winner': winner, 'legs': done_legs, 'status': 'final',
+                    })
+                else:
+                    # Partially played — show completed leg results + upcoming leg date
+                    t1_part = sum(goals_for(team1, l) for l in done_legs) if done_legs else None
+                    t2_part = sum(goals_for(team2, l) for l in done_legs) if done_legs else None
+                    next_date = pending_legs[0].get('date')
+                    matchups.append({
+                        'team1': team1, 'team2': team2,
+                        't1_agg': t1_part, 't2_agg': t2_part,
+                        'winner': None, 'legs': done_legs,
+                        'status': 'in_progress',
+                        'date': next_date,
+                    })
             else:
                 t1_score = leg1['home_score']
                 t2_score = leg1['away_score']
-                if leg1['status'] == 'final':
+                if leg1['status'].startswith('final'):
                     winner = team1 if (t1_score or 0) > (t2_score or 0) else (
                              team2 if (t2_score or 0) > (t1_score or 0) else None)
                 else:
@@ -688,15 +704,38 @@ def eihl_overview():
     comp = request.args.get("comp", "League")
     if comp not in EIHL_COMPETITIONS:
         comp = "League"
-    recent    = eihl_queries.get_eihl_recent_results(comp, season=season, limit=8)
-    upcoming  = eihl_queries.get_eihl_upcoming_fixtures(comp, season=season, limit=5)
-    standings = eihl_queries.get_eihl_standings(comp, season=season)
+
+    # Phase sub-tabs
+    if comp == "League":
+        valid_phases = ["regular", "playoff"]
+        default_phase = "playoff"
+    else:
+        valid_phases = ["group", "knockout"]
+        default_phase = "knockout"
+    phase = request.args.get("phase", default_phase)
+    if phase not in valid_phases:
+        phase = default_phase
+
+    phase_labels = {
+        "regular":  "Regular Season",
+        "playoff":  "Play-offs",
+        "group":    "Group Stage",
+        "knockout": "Knockout",
+    }
+
+    recent   = eihl_queries.get_eihl_recent_results(comp, season=season, limit=8, phase=phase)
+    upcoming = eihl_queries.get_eihl_upcoming_fixtures(comp, season=season, limit=5, phase=phase)
+
+    # Standings: show for regular season / group stage only
+    standings = None
+    if phase in ("regular", "group"):
+        standings = eihl_queries.get_eihl_standings(comp, season=season)
 
     bracket = bracket_title = None
-    if comp == "League":
+    if phase == "playoff":
         bracket = _build_eihl_bracket(EIHL_PLAYOFFS_BRACKET)
         bracket_title = f"{season} EIHL Play-offs"
-    elif comp == "Cup":
+    elif phase == "knockout":
         bracket = _build_eihl_bracket(EIHL_CUP_BRACKET)
         bracket_title = f"{season} Challenge Cup Knockout"
 
@@ -705,6 +744,7 @@ def eihl_overview():
         comp=comp, competitions=EIHL_COMPETITIONS,
         comp_labels=EIHL_COMP_LABELS,
         season=season, seasons=EIHL_SEASONS,
+        phase=phase, valid_phases=valid_phases, phase_labels=phase_labels,
         recent=recent, upcoming=upcoming, standings=standings,
         bracket=bracket, bracket_title=bracket_title,
         eihl_short=_eihl_short,
@@ -719,13 +759,9 @@ def eihl_fixtures():
     comp = request.args.get("comp", "all")
     if comp not in (["all"] + EIHL_COMPETITIONS):
         comp = "all"
-    all_fx = eihl_queries.get_eihl_all_fixtures(comp, season=season)
-
-    # Split fixtures by phase for League/Cup tabs
-    regular_results  = [f for f in all_fx if f["status"] != "scheduled" and f.get("phase") in ("regular", "group", None)]
-    playoff_results  = [f for f in all_fx if f["status"] != "scheduled" and f.get("phase") in ("playoff", "knockout")]
-    regular_upcoming = [f for f in all_fx if f["status"] == "scheduled" and f.get("phase") in ("regular", "group", None)]
-    playoff_upcoming = [f for f in all_fx if f["status"] == "scheduled" and f.get("phase") in ("playoff", "knockout")]
+    all_fx   = eihl_queries.get_eihl_all_fixtures(comp, season=season)
+    upcoming = [f for f in all_fx if f["status"] == "scheduled"]
+    results  = [f for f in all_fx if f["status"] != "scheduled"]
 
     bracket = bracket_title = None
     if comp == "League":
@@ -740,8 +776,7 @@ def eihl_fixtures():
         comp=comp, competitions=["all"] + EIHL_COMPETITIONS,
         comp_labels=EIHL_COMP_LABELS,
         season=season, seasons=EIHL_SEASONS,
-        regular_results=regular_results, playoff_results=playoff_results,
-        regular_upcoming=regular_upcoming, playoff_upcoming=playoff_upcoming,
+        upcoming=upcoming, results=results,
         bracket=bracket, bracket_title=bracket_title,
         eihl_short=_eihl_short,
     )

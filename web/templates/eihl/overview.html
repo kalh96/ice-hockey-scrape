@@ -5,6 +5,7 @@
 {% block content %}
 <h1 class="page-title">Elite Ice Hockey League</h1>
 
+{# Competition tabs (League / Cup) #}
 <div class="comp-tabs">
   {% for c in competitions %}
     <a href="{{ url_for('eihl_overview', comp=c, season=season) }}"
@@ -14,17 +15,27 @@
   {% endfor %}
 </div>
 
+{# Phase sub-tabs (Regular Season / Play-offs  or  Group Stage / Knockout) #}
+<div class="comp-tabs phase-tabs">
+  {% for p in valid_phases %}
+    <a href="{{ url_for('eihl_overview', comp=comp, phase=p, season=season) }}"
+       class="comp-tab {{ 'active' if p == phase else '' }}">
+      {{ phase_labels[p] }}
+    </a>
+  {% endfor %}
+</div>
+
 {% if seasons | length > 1 %}
 <div class="season-selector">
   <span class="season-label">Season:</span>
   {% for s in seasons %}
-    <a href="{{ url_for('eihl_overview', comp=comp, season=s) }}"
+    <a href="{{ url_for('eihl_overview', comp=comp, phase=phase, season=s) }}"
        class="season-tab {{ 'active' if s == season else '' }}">{{ s }}</a>
   {% endfor %}
 </div>
 {% endif %}
 
-{# Bracket for play-offs / Cup knockout #}
+{# Bracket (play-offs / knockout phase only) #}
 {% if bracket %}
   <h2 class="section-title">{{ bracket_title }}</h2>
   <div class="bracket">
@@ -38,15 +49,11 @@
 
                 <div class="bracket-team {{ 'winner' if m.winner == m.team1 else ('loser' if m.winner else '') }}">
                   <span class="bracket-team-name">{{ m.team1 | eihl_short }}</span>
-                  {% if m.t1_agg is not none %}
-                    <span class="bracket-agg">{{ m.t1_agg }}</span>
-                  {% endif %}
+                  {% if m.t1_agg is not none %}<span class="bracket-agg">{{ m.t1_agg }}</span>{% endif %}
                 </div>
                 <div class="bracket-team {{ 'winner' if m.winner == m.team2 else ('loser' if m.winner else '') }}">
                   <span class="bracket-team-name">{{ m.team2 | eihl_short }}</span>
-                  {% if m.t2_agg is not none %}
-                    <span class="bracket-agg">{{ m.t2_agg }}</span>
-                  {% endif %}
+                  {% if m.t2_agg is not none %}<span class="bracket-agg">{{ m.t2_agg }}</span>{% endif %}
                 </div>
 
                 {% if m.status == 'final' and m.legs | length >= 2 %}
@@ -63,7 +70,18 @@
                       {{ m.legs[0].home_team | eihl_short }} {{ m.t1_agg }}–{{ m.t2_agg }} {{ m.legs[0].away_team | eihl_short }}
                     </a>
                   </div>
-                {% elif m.status == 'scheduled' and m.date %}
+                {% elif m.status == 'in_progress' %}
+                  {% if m.legs %}
+                    <div class="bracket-legs">
+                      {% for leg in m.legs %}
+                        <a href="{{ url_for('eihl_game_detail', game_id=leg.game_id) }}" class="bracket-leg-link">
+                          {{ leg.home_team | eihl_short }} {{ leg.home_score }}–{{ leg.away_score }} {{ leg.away_team | eihl_short }}
+                        </a>
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+                  {% if m.date %}<div class="bracket-date">Leg 2: {{ m.date }}</div>{% endif %}
+                {% elif m.date %}
                   <div class="bracket-date">{{ m.date }}</div>
                 {% endif %}
 
@@ -78,7 +96,7 @@
 
 <div class="two-col-layout">
 
-  {# Left: Results + Upcoming #}
+  {# Left: Upcoming + Recent Results #}
   <div class="two-col-main">
 
     {% if upcoming %}
@@ -91,7 +109,6 @@
               <div class="result-card-centre">
                 <div class="score upcoming-score">vs</div>
                 {% if f.date %}<div class="meta">{{ f.date }}</div>{% endif %}
-                {% if comp == 'all' %}<div class="meta"><span class="badge">{{ f.competition }}</span></div>{% endif %}
               </div>
               <div class="team-away">{{ eihl_short(f.away_team) }}</div>
             </div>
@@ -125,7 +142,7 @@
 
   </div>
 
-  {# Right: Standings sidebar #}
+  {# Right: Standings (regular season / group stage only) #}
   {% if standings %}
   <div class="two-col-sidebar">
     <h2 class="section-title">

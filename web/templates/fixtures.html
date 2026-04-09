@@ -63,6 +63,17 @@
                       {{ m.legs[0].home_team | short_name }} {{ m.t1_agg }}–{{ m.t2_agg }} {{ m.legs[0].away_team | short_name }}
                     </a>
                   </div>
+                {% elif m.status == 'in_progress' %}
+                  {% if m.legs %}
+                    <div class="bracket-legs">
+                      {% for leg in m.legs %}
+                        <a href="{{ url_for('event_detail', event_id=leg.event_id) }}" class="bracket-leg-link">
+                          {{ leg.home_team | short_name }} {{ leg.home_score }}–{{ leg.away_score }} {{ leg.away_team | short_name }}
+                        </a>
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+                  {% if m.date %}<div class="bracket-date">Leg 2: {{ m.date }}</div>{% endif %}
                 {% elif m.status == 'scheduled' and m.date %}
                   <div class="bracket-date">{{ m.date }}</div>
                 {% endif %}

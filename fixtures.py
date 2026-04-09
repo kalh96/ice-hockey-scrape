@@ -8,6 +8,36 @@ from bs4 import BeautifulSoup
 
 logger = logging.getLogger(__name__)
 
+_SIHA_DATE_RE = re.compile(
+    r"(?P<mon>[A-Za-z]{3})\s+(?P<day>\d{1,2}),\s+(?P<h>\d{1,2}):(?P<mi>\d{2})\s+(?P<ampm>AM|PM)"
+)
+_MONTH_MAP = {
+    "jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6,
+    "jul": 7, "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12,
+}
+
+
+def _normalize_siha_date(raw: str | None) -> str | None:
+    """Convert 'Apr 4, 6:30 PM' → '2026-04-04 18:30'. Returns None if unparseable."""
+    if not raw:
+        return None
+    if raw.startswith("20"):
+        return raw  # already ISO
+    m = _SIHA_DATE_RE.search(raw)
+    if not m:
+        return raw  # return as-is if unrecognised
+    month = _MONTH_MAP.get(m.group("mon").lower())
+    if not month:
+        return raw
+    year = 2026 if month <= 8 else 2025  # 2025-26 season
+    h = int(m.group("h"))
+    mi = int(m.group("mi"))
+    if m.group("ampm") == "PM" and h != 12:
+        h += 12
+    elif m.group("ampm") == "AM" and h == 12:
+        h = 0
+    return f"{year}-{month:02d}-{int(m.group('day')):02d} {h:02d}:{mi:02d}"
+
 
 import zlib
 
@@ -121,7 +151,7 @@ def parse_fixtures_page(soup: BeautifulSoup) -> list[dict]:
         fixtures[event_id] = {
             "event_id":       event_id,
             "competition":    competition,
-            "date":           date_str,
+            "date":           _normalize_siha_date(date_str),
             "home_team_slug": home_slug,
             "home_team_name": home_name,
             "away_team_slug": away_slug,
