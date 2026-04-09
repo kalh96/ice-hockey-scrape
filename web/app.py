@@ -837,10 +837,20 @@ def eihl_team_detail(slug):
     if season not in EIHL_SEASONS:
         season = EIHL_CURRENT_SEASON
     all_fx          = eihl_queries.get_eihl_team_fixtures(team_name, season=season)
-    upcoming        = [f for f in all_fx if f["status"] == "scheduled"]
-    results         = [f for f in all_fx if f["status"] != "scheduled"]
+    upcoming        = sorted(
+                          [f for f in all_fx if f["status"] == "scheduled"],
+                          key=lambda f: (f["date"] or "z", f["game_id"]),
+                      )
+    results         = sorted(
+                          [f for f in all_fx if f["status"] != "scheduled"],
+                          key=lambda f: (f["date"] or "0", f["game_id"]),
+                          reverse=True,
+                      )
     league_standings = eihl_queries.get_eihl_standings("League", season=season)
-    cup_standings   = eihl_queries.get_eihl_standings("Cup", season=season)
+    cup_standings_all = eihl_queries.get_eihl_standings("Cup", season=season)
+    # Only show the group the current team belongs to
+    team_group      = next((r["group_name"] for r in cup_standings_all if r["team"] == team_name), None)
+    cup_standings   = [r for r in cup_standings_all if r["group_name"] == team_group] if team_group else cup_standings_all
     skaters         = eihl_queries.get_eihl_team_skaters(team_name, season=season)
     info            = EIHL_TEAM_DISPLAY.get(team_name, {})
     return render_template(

@@ -182,34 +182,32 @@ def parse_schedule_page(soup: BeautifulSoup, competition: str, season: str) -> l
 
 def scrape_all_months(scraper_get_soup, base_schedule_url: str,
                       competition: str, season: str) -> list[dict]:
-    """Fetch the full season schedule using id_month=999 (all months).
+    """Fetch the full season schedule.
 
-    The EIHL schedule page uses id_month=999 for "all months" and id_team=0
-    for all teams.  A single request returns the complete season.
-    Falls back to fetching each calendar month individually if the all-months
-    request returns fewer than 20 games (e.g. site layout changed).
+    Step 1: fetch id_month=999 (all months) to get the complete game list quickly.
+    Step 2: fetch each calendar month individually to supplement dates — the
+            all-months view omits dates for completed games.
     """
+    # Step 1: all-months for complete coverage
     all_months_url = f"{base_schedule_url}&id_team=0&id_month=999"
     soup = scraper_get_soup(all_months_url)
-    if soup is not None:
-        fixtures = parse_schedule_page(soup, competition, season)
-        if len(fixtures) >= 20:
-            logger.info("[%s] all-months fetch: %d fixtures", competition, len(fixtures))
-            return fixtures
-        logger.warning("[%s] all-months returned only %d fixtures; falling back to per-month",
-                       competition, len(fixtures))
-
-    # Fallback: iterate each calendar month
-    _season_months = [9, 10, 11, 12, 1, 2, 3, 4]
     all_fixtures: dict[str, dict] = {}
+    if soup is not None:
+        for f in parse_schedule_page(soup, competition, season):
+            all_fixtures[f["game_id"]] = f
+        logger.info("[%s] all-months: %d fixtures", competition, len(all_fixtures))
+    else:
+        logger.warning("[%s] all-months fetch failed", competition)
+
+    # Step 2: per-month sweep to pick up dates (all-months view omits them)
+    _season_months = [9, 10, 11, 12, 1, 2, 3, 4]
     for month in _season_months:
         url  = f"{base_schedule_url}&id_team=0&id_month={month}"
         soup = scraper_get_soup(url)
         if soup is None:
-            logger.warning("[%s] month=%d: failed to fetch %s", competition, month, url)
+            logger.warning("[%s] month=%d: fetch failed", competition, month)
             continue
-        page_fixtures = parse_schedule_page(soup, competition, season)
-        for f in page_fixtures:
+        for f in parse_schedule_page(soup, competition, season):
             gid = f["game_id"]
             if gid not in all_fixtures:
                 all_fixtures[gid] = f
@@ -222,7 +220,9 @@ def scrape_all_months(scraper_get_soup, base_schedule_url: str,
                     existing["away_score"] = f["away_score"]
                 if f["status"] != "scheduled" and existing["status"] == "scheduled":
                     existing["status"] = f["status"]
-        logger.info("[%s] month=%d: %d fixtures (running total %d)",
-                    competition, month, len(page_fixtures), len(all_fixtures))
+        logger.info("[%s] month=%d: supplement done (total %d)",
+                    competition, month, len(all_fixtures))
 
+    if not all_fixtures:
+        logger.warning("[%s] no fixtures found", competition)
     return list(all_fixtures.values())

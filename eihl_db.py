@@ -213,12 +213,15 @@ def upsert_fixture(conn: sqlite3.Connection, **kw) -> None:
 
 
 def update_fixture_detail(conn: sqlite3.Connection, game_id: str,
-                          venue: str | None, attendance: int | None,
-                          home_p1, away_p1, home_p2, away_p2,
-                          home_p3, away_p3, home_ot, away_ot) -> None:
+                          date: str | None = None,
+                          venue: str | None = None, attendance: int | None = None,
+                          home_p1=None, away_p1=None, home_p2=None, away_p2=None,
+                          home_p3=None, away_p3=None, home_ot=None, away_ot=None,
+                          **_ignored) -> None:
     conn.execute(
         """
         UPDATE eihl_fixtures SET
+            date       = COALESCE(:date, date),
             venue      = :venue,
             attendance = :attendance,
             home_p1 = :hp1, away_p1 = :ap1,
@@ -228,7 +231,7 @@ def update_fixture_detail(conn: sqlite3.Connection, game_id: str,
             scraped_at = :ts
         WHERE game_id = :game_id
         """,
-        dict(game_id=game_id, venue=venue, attendance=attendance,
+        dict(game_id=game_id, date=date, venue=venue, attendance=attendance,
              hp1=home_p1, ap1=away_p1, hp2=home_p2, ap2=away_p2,
              hp3=home_p3, ap3=away_p3, hot=home_ot, aot=away_ot,
              ts=now_iso()),

@@ -124,7 +124,7 @@
     {% endif %}
 
     {% if recent %}
-      <h2 class="section-title mt-2">Recent Results</h2>
+      <h2 class="section-title {{ 'mt-2' if upcoming else '' }}">Recent Results</h2>
       <div class="result-list">
         {% for f in recent %}
           <a href="{{ url_for('eihl_game_detail', game_id=f.game_id) }}" class="result-card-link">

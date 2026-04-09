@@ -43,8 +43,37 @@ def _player_id_from_href(href: str | None) -> str | None:
 # Main game page  →  venue, attendance, period scores
 # ---------------------------------------------------------------------------
 
+_DATE_RE = re.compile(
+    r"(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{4})"
+    r"(?:,\s*(\d{2}:\d{2}))?",
+    re.IGNORECASE,
+)
+_MONTH_NUM_GD = {
+    "jan": "01", "feb": "02", "mar": "03", "apr": "04",
+    "may": "05", "jun": "06", "jul": "07", "aug": "08",
+    "sep": "09", "oct": "10", "nov": "11", "dec": "12",
+}
+
+
+def _parse_game_date(soup: BeautifulSoup) -> str | None:
+    """Extract game date from the detail page header, e.g. '18 Mar 2026, 19:30'."""
+    # Primary: the dedicated date badge div
+    badge = soup.find("div", class_=lambda c: c and "text-gray" in c and "font-size-small" in c)
+    candidates = [badge.get_text(" ", strip=True)] if badge else []
+    # Fallback: scan full text
+    candidates.append(soup.get_text(" ", strip=True)[:2000])
+    for text in candidates:
+        m = _DATE_RE.search(text)
+        if m:
+            day, mon, year, time = m.groups()
+            month_num = _MONTH_NUM_GD.get(mon.lower(), "01")
+            return f"{year}-{month_num}-{int(day):02d} {time or '00:00'}"
+    return None
+
+
 def parse_main_page(soup: BeautifulSoup) -> dict:
     result = {
+        "date": _parse_game_date(soup),
         "venue": None, "attendance": None,
         "home_p1": None, "away_p1": None,
         "home_p2": None, "away_p2": None,

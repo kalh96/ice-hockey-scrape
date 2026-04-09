@@ -164,7 +164,7 @@
     {% if results %}
       <h2 class="section-title {{ 'mt-2' if upcoming else '' }}">Results</h2>
       <div class="result-list">
-        {% for f in results | reverse %}
+        {% for f in results %}
           <a href="{{ url_for('eihl_game_detail', game_id=f.game_id) }}" class="result-card-link">
             <div class="result-card">
               <div class="team-home {{ 'team-highlight' if f.home_team == team_name else '' }}">
