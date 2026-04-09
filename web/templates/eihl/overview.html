@@ -80,7 +80,13 @@
                       {% endfor %}
                     </div>
                   {% endif %}
-                  {% if m.date %}<div class="bracket-date">Leg 2: {{ m.date }}</div>{% endif %}
+                  {% for d in m.pending_dates %}
+                    {% if d %}<div class="bracket-date">Leg {{ m.legs | length + loop.index }}: {{ d }}</div>{% endif %}
+                  {% endfor %}
+                {% elif m.pending_dates %}
+                  {% for d in m.pending_dates %}
+                    {% if d %}<div class="bracket-date">Leg {{ loop.index }}: {{ d }}</div>{% endif %}
+                  {% endfor %}
                 {% elif m.date %}
                   <div class="bracket-date">{{ m.date }}</div>
                 {% endif %}

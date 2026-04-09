@@ -290,16 +290,16 @@ def _build_cup_bracket(fixtures_by_id, bracket_def=None):
                         'winner': winner, 'legs': done_legs, 'status': 'final',
                     })
                 else:
-                    # Partially played — show completed leg results + upcoming leg date
+                    # Some or all legs still to be played.
+                    # pending_dates[i] is the date for pending leg (done+i+1).
                     t1_part = sum(goals_for(team1, l) for l in done_legs) if done_legs else None
                     t2_part = sum(goals_for(team2, l) for l in done_legs) if done_legs else None
-                    next_date = pending_legs[0].get('date')
                     matchups.append({
                         'team1': team1, 'team2': team2,
                         't1_agg': t1_part, 't2_agg': t2_part,
                         'winner': None, 'legs': done_legs,
-                        'status': 'in_progress',
-                        'date': next_date,
+                        'status': 'in_progress' if done_legs else 'scheduled',
+                        'pending_dates': [l.get('date') for l in pending_legs],
                     })
             else:
                 t1_score = leg1['home_score']
