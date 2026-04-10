@@ -2,3 +2,5 @@ __pycache__/
 *.pyc
 # siha.db is committed so Render can serve live stats data
 scraper.log
+# sim.db is created at runtime — not committed (ephemeral on Render for now)
+sim.db

@@ -1,0 +1,21 @@
+{% if standings %}
+<table class="standings-table">
+  <thead>
+    <tr>
+      <th>#</th><th class="team-col">Team</th>
+      <th>GP</th><th>PTS</th><th>GD</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in standings %}
+    <tr class="{{ 'standings-user-row' if (game is defined and row.team_id == game.user_team_id) else '' }}">
+      <td>{{ row.pos }}</td>
+      <td class="team-col">{{ row.team }}</td>
+      <td>{{ row.gp }}</td>
+      <td><strong>{{ row.pts }}</strong></td>
+      <td>{{ '+' ~ row.gd if row.gd > 0 else row.gd }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}

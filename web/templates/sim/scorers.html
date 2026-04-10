@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Top Scorers – {{ league.name }} {{ league.season }} – Sim Game{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+  <a href="{{ url_for('sim.index') }}">Sim Game</a> &rsaquo;
+  <a href="{{ url_for('sim.season', lid=league.id) }}">{{ league.name }}</a> &rsaquo;
+  Top Scorers
+</div>
+
+<h1 class="page-title">{{ league.name }} <span class="season-badge">{{ league.season }}</span></h1>
+
+<div class="sim-nav-tabs">
+  <a href="{{ url_for('sim.season',  lid=league.id) }}" class="comp-tab">Overview</a>
+  <a href="{{ url_for('sim.scorers', lid=league.id) }}" class="comp-tab active">Top Scorers</a>
+</div>
+
+<h2 class="section-title">Top Scorers — Regular Season</h2>
+
+{% if scorers %}
+<table class="standings-table stats-table">
+  <thead>
+    <tr>
+      <th>#</th>
+      <th class="team-col">Player</th>
+      <th>Pos</th>
+      <th>Team</th>
+      <th>GP</th>
+      <th>G</th>
+      <th>A</th>
+      <th>PTS</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for p in scorers %}
+    <tr>
+      <td>{{ loop.index }}</td>
+      <td class="team-col"><strong>{{ p.player }}</strong></td>
+      <td class="text-muted">{{ p.position }}</td>
+      <td>
+        <a href="{{ url_for('sim.team', lid=league.id, tid=p.team_id) }}">{{ p.team }}</a>
+      </td>
+      <td>{{ p.gp }}</td>
+      <td>{{ p.g }}</td>
+      <td>{{ p.a }}</td>
+      <td><strong>{{ p.pts }}</strong></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="no-data">No scorer data available.</p>
+{% endif %}
+{% endblock %}

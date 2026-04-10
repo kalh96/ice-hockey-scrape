@@ -95,6 +95,14 @@
           <li><a href="{{ url_for('wnihl_overview', comp='1 South') }}">WNIHL 1 South</a></li>
         </ul>
       </li>
+      <li class="nav-dropdown">
+        <a href="{{ url_for('sim.index') }}"
+           class="{{ 'active' if request.blueprint == 'sim' else '' }}">Sim Game</a>
+        <ul class="dropdown-menu">
+          <li><a href="{{ url_for('sim.play_index') }}">Play a Season</a></li>
+          <li><a href="{{ url_for('sim.index') }}">Browse Results</a></li>
+        </ul>
+      </li>
       <li><a href="{{ url_for('about') }}"
              class="{{ 'active' if request.endpoint == 'about' else '' }}">About</a></li>
     </ul>

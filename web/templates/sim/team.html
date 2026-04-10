@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}{{ team.name }} – {{ league.name }} {{ league.season }} – Sim Game{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+  <a href="{{ url_for('sim.index') }}">Sim Game</a> &rsaquo;
+  <a href="{{ url_for('sim.season', lid=league.id) }}">{{ league.name }}</a> &rsaquo;
+  {{ team.name }}
+</div>
+
+<h1 class="page-title">{{ team.name }}</h1>
+<p class="text-muted">{{ league.name }} &middot; {{ league.season }}</p>
+
+{# ── Season stats bar ─────────────────────────────────────────────────────── #}
+{% if standing %}
+<div class="sim-team-stats-bar">
+  <div class="sim-stat-item"><span class="sim-stat-val">{{ standing.gp }}</span><span class="sim-stat-lbl">GP</span></div>
+  <div class="sim-stat-item"><span class="sim-stat-val">{{ standing.w }}</span><span class="sim-stat-lbl">W</span></div>
+  <div class="sim-stat-item"><span class="sim-stat-val">{{ standing.otw }}</span><span class="sim-stat-lbl">OTW</span></div>
+  <div class="sim-stat-item"><span class="sim-stat-val">{{ standing.l }}</span><span class="sim-stat-lbl">L</span></div>
+  <div class="sim-stat-item"><span class="sim-stat-val">{{ standing.otl }}</span><span class="sim-stat-lbl">OTL</span></div>
+  <div class="sim-stat-item"><span class="sim-stat-val">{{ standing.gf }}</span><span class="sim-stat-lbl">GF</span></div>
+  <div class="sim-stat-item"><span class="sim-stat-val">{{ standing.ga }}</span><span class="sim-stat-lbl">GA</span></div>
+  <div class="sim-stat-item"><span class="sim-stat-val">{{ standing.pts }}</span><span class="sim-stat-lbl">PTS</span></div>
+</div>
+{% endif %}
+
+<div class="two-col-layout">
+
+  {# Left — Roster ─────────────────────────────────────────────────────────── #}
+  <div class="two-col-main">
+
+    {% if forwards %}
+    <h2 class="section-title">Forwards</h2>
+    <table class="standings-table stats-table">
+      <thead>
+        <tr>
+          <th>Line</th><th class="team-col">Name</th><th>Pos</th><th>Age</th>
+          <th>OVR</th><th>GP</th><th>G</th><th>A</th><th>PTS</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in forwards %}
+        <tr>
+          <td class="text-muted">{{ p.line_number }}</td>
+          <td class="team-col"><strong>{{ p.name }}</strong></td>
+          <td class="text-muted">{{ p.position }}</td>
+          <td>{{ p.age }}</td>
+          <td>{{ "%.1f"|format(p.overall) }}</td>
+          <td>{{ p.stat_gp }}</td>
+          <td>{{ p.stat_g }}</td>
+          <td>{{ p.stat_a }}</td>
+          <td><strong>{{ p.stat_pts }}</strong></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+
+    {% if defence %}
+    <h2 class="section-title mt-2">Defence</h2>
+    <table class="standings-table stats-table">
+      <thead>
+        <tr>
+          <th>Pair</th><th class="team-col">Name</th><th>Pos</th><th>Age</th>
+          <th>OVR</th><th>GP</th><th>G</th><th>A</th><th>PTS</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in defence %}
+        <tr>
+          <td class="text-muted">{{ p.line_number }}</td>
+          <td class="team-col"><strong>{{ p.name }}</strong></td>
+          <td class="text-muted">{{ p.position }}</td>
+          <td>{{ p.age }}</td>
+          <td>{{ "%.1f"|format(p.overall) }}</td>
+          <td>{{ p.stat_gp }}</td>
+          <td>{{ p.stat_g }}</td>
+          <td>{{ p.stat_a }}</td>
+          <td><strong>{{ p.stat_pts }}</strong></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+
+    {% if goalies %}
+    <h2 class="section-title mt-2">Goalies</h2>
+    <table class="standings-table stats-table">
+      <thead>
+        <tr>
+          <th></th><th class="team-col">Name</th><th>Pos</th><th>Age</th><th>OVR</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in goalies %}
+        <tr>
+          <td class="text-muted">{{ 'Starter' if loop.first else 'Backup' }}</td>
+          <td class="team-col"><strong>{{ p.name }}</strong></td>
+          <td class="text-muted">G</td>
+          <td>{{ p.age }}</td>
+          <td>{{ "%.1f"|format(p.overall) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+
+  </div>
+
+  {# Right — Results ─────────────────────────────────────────────────────── #}
+  <div class="two-col-sidebar">
+    <h2 class="section-title">Results</h2>
+    {% if fixtures %}
+    <div class="sim-team-results">
+      {% for f in fixtures %}
+        <a href="{{ url_for('sim.match', lid=league.id, fid=f.id) }}" class="sim-result-row result-{{ f.result[0] | lower }}">
+          <span class="sim-result-badge sim-result-{{ f.result[0] | lower }}">{{ f.result }}</span>
+          <span class="sim-result-venue text-muted">{{ f.venue }}</span>
+          <span class="sim-result-opp">
+            <a href="{{ url_for('sim.team', lid=league.id, tid=f.opp_id) }}">{{ f.opp }}</a>
+          </span>
+          <span class="sim-result-score">{{ f.gf }}–{{ f.ga }}</span>
+          {% if f.result_type and f.result_type != 'REG' %}
+            <span class="badge">{{ f.result_type }}</span>
+          {% endif %}
+        </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="no-data">No results yet.</p>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

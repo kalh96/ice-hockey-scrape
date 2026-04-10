@@ -1,8 +1,15 @@
 """Flask web application for Scottish Ice Hockey stats and articles."""
 
 import os
+import sys
 from datetime import date
 from pathlib import Path
+
+# Make the repo root importable so `import sim` works when running from web/.
+# Appended (not prepended) so web/ modules (config, db_queries, etc.) stay first.
+_REPO_ROOT = str(Path(__file__).parent.parent)
+if _REPO_ROOT not in sys.path:
+    sys.path.append(_REPO_ROOT)
 
 import frontmatter
 import markdown2
@@ -19,9 +26,11 @@ from config import (
     EIHL_PLAYOFFS_BRACKET, EIHL_CUP_BRACKET,
     WNIHL_COMPETITIONS, WNIHL_COMP_LABELS, WNIHL_CURRENT_SEASON, WNIHL_SEASONS,
 )
+from sim.web import sim_bp
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-secret-change-in-prod")
+app.register_blueprint(sim_bp, url_prefix="/sim")
 
 
 # ---------------------------------------------------------------------------

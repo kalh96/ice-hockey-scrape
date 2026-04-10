@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Sim Game – Scottish Ice Hockey News{% endblock %}
+{% block meta_description %}Simulate your own ice hockey league. Generate fictional teams, run a full season and playoffs, and browse the results.{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Sim Game</h1>
+<p class="page-intro">Generate fictional ice hockey leagues and simulate full seasons with standings, top scorers, and playoffs.</p>
+
+{# ── New Season form ─────────────────────────────────────────────────────── #}
+<section class="sim-new-season card">
+  <h2 class="section-title">Run a New Season</h2>
+  <form action="{{ url_for('sim.new_season') }}" method="post" class="sim-form">
+    <div class="sim-form-grid">
+
+      <div class="form-field">
+        <label for="name">League Name</label>
+        <input id="name" name="name" type="text" value="Sim Hockey League" maxlength="60">
+      </div>
+
+      <div class="form-field">
+        <label for="season">Season</label>
+        <input id="season" name="season" type="text" value="2026-27" maxlength="10">
+      </div>
+
+      <div class="form-field">
+        <label for="n_teams">Teams</label>
+        <select id="n_teams" name="n_teams">
+          {% for n in [6, 8, 10, 12] %}
+            <option value="{{ n }}" {{ 'selected' if n == 8 else '' }}>{{ n }} teams</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-field">
+        <label for="playoffs">Playoff Teams</label>
+        <select id="playoffs" name="playoffs">
+          {% for n in [4, 8] %}
+            <option value="{{ n }}" {{ 'selected' if n == 4 else '' }}>Top {{ n }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-field">
+        <label for="seed">Seed <span class="label-hint">(optional, for reproducibility)</span></label>
+        <input id="seed" name="seed" type="number" min="0" placeholder="random">
+      </div>
+
+    </div>
+    <button type="submit" class="btn btn-primary sim-submit">Simulate Season</button>
+  </form>
+</section>
+
+{# ── Saved Seasons ────────────────────────────────────────────────────────── #}
+{% if leagues %}
+<section class="sim-history">
+  <h2 class="section-title">Saved Seasons</h2>
+  <table class="standings-table sim-history-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th class="team-col">League</th>
+        <th>Season</th>
+        <th>Teams</th>
+        <th>Champion</th>
+        <th>Saved</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for lg in leagues %}
+      <tr>
+        <td>{{ lg.id }}</td>
+        <td class="team-col">
+          <a href="{{ url_for('sim.season', lid=lg.id) }}">{{ lg.name }}</a>
+        </td>
+        <td>{{ lg.season }}</td>
+        <td>{{ lg.n_teams }}</td>
+        <td>{{ lg.champion or '—' }}</td>
+        <td class="text-muted">{{ lg.created_at[:10] }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% else %}
+<p class="no-data">No seasons saved yet. Run one above!</p>
+{% endif %}
+{% endblock %}

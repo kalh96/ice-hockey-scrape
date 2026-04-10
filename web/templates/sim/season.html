@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}{{ league.name }} {{ league.season }} – Sim Game{% endblock %}
+{% block meta_description %}Standings and results for the {{ league.name }} {{ league.season }} simulation.{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+  <a href="{{ url_for('sim.index') }}">Sim Game</a> &rsaquo; {{ league.name }}
+</div>
+
+<h1 class="page-title">{{ league.name }} <span class="season-badge">{{ league.season }}</span></h1>
+
+{% if champion %}
+<div class="sim-champion-banner">
+  <span class="champion-label">Champions</span>
+  <strong>{{ champion }}</strong>
+</div>
+{% endif %}
+
+<div class="sim-nav-tabs">
+  <a href="{{ url_for('sim.season',  lid=league.id) }}" class="comp-tab active">Overview</a>
+  <a href="{{ url_for('sim.scorers', lid=league.id) }}" class="comp-tab">Top Scorers</a>
+</div>
+
+<div class="two-col-layout">
+
+  {# Left — Results + Playoffs #}
+  <div class="two-col-main">
+
+    {% if playoffs %}
+      <h2 class="section-title">Playoffs</h2>
+      {% for rnd in playoffs %}
+        <h3 class="standings-group-title">{{ rnd.label }}</h3>
+        <div class="result-list">
+          {% for f in rnd.fixtures %}
+            <a href="{{ url_for('sim.match', lid=league.id, fid=f.id) }}" class="result-card-link">
+              <div class="result-card {{ 'result-card--final' if f.result_type else '' }}">
+                <div class="team-home">
+                  <a href="{{ url_for('sim.team', lid=league.id, tid=f.home_team_id) }}" class="team-name-link">{{ f.home_team }}</a>
+                </div>
+                <div class="result-card-centre">
+                  <div class="score">{{ f.home_score }} – {{ f.away_score }}</div>
+                  {% if f.result_type and f.result_type != 'REG' %}
+                    <div class="meta"><span class="badge">{{ f.result_type }}</span></div>
+                  {% endif %}
+                </div>
+                <div class="team-away">
+                  <a href="{{ url_for('sim.team', lid=league.id, tid=f.away_team_id) }}" class="team-name-link">{{ f.away_team }}</a>
+                </div>
+              </div>
+            </a>
+          {% endfor %}
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    {% if recent %}
+      <h2 class="section-title {{ 'mt-2' if playoffs else '' }}">Recent Results</h2>
+      <div class="result-list">
+        {% for f in recent %}
+          <a href="{{ url_for('sim.match', lid=league.id, fid=f.id) }}" class="result-card-link">
+            <div class="result-card">
+              <div class="team-home">{{ f.home_team }}</div>
+              <div class="result-card-centre">
+                <div class="score">{{ f.home_score }} – {{ f.away_score }}</div>
+                {% if f.result_type and f.result_type != 'REG' %}
+                  <div class="meta"><span class="badge">{{ f.result_type }}</span></div>
+                {% endif %}
+              </div>
+              <div class="team-away">{{ f.away_team }}</div>
+            </div>
+          </a>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+  </div>
+
+  {# Right — Standings #}
+  <div class="two-col-sidebar">
+    <h2 class="section-title">Standings</h2>
+    <table class="standings-table">
+      <thead>
+        <tr>
+          <th>#</th><th class="team-col">Team</th>
+          <th>GP</th><th>W</th><th>OTW</th><th>L</th><th>OTL</th>
+          <th>GF</th><th>GA</th><th>PTS</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in standings %}
+        <tr class="{{ 'standings-playoff-line' if loop.index == league.n_teams else '' }}">
+          <td>{{ row.pos }}</td>
+          <td class="team-col">
+            <a href="{{ url_for('sim.team', lid=league.id, tid=row.team_id) }}" class="team-name-link">{{ row.team }}</a>
+          </td>
+          <td>{{ row.gp }}</td>
+          <td>{{ row.w }}</td>
+          <td>{{ row.otw }}</td>
+          <td>{{ row.l }}</td>
+          <td>{{ row.otl }}</td>
+          <td>{{ row.gf }}</td>
+          <td>{{ row.ga }}</td>
+          <td><strong>{{ row.pts }}</strong></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+{% endblock %}

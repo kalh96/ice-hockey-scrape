@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Pick Your Team – Sim Game{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+  <a href="{{ url_for('sim.index') }}">Sim Game</a> &rsaquo;
+  <a href="{{ url_for('sim.play_index') }}">Play</a> &rsaquo;
+  Pick Team
+</div>
+
+<h1 class="page-title">{{ league.name }} <span class="season-badge">{{ league.season }}</span></h1>
+<p class="page-intro">Choose the team you want to manage. Teams are sorted by average player quality.</p>
+
+<form action="{{ url_for('sim.play_pick', lid=league.id) }}" method="post">
+  <input type="hidden" name="n_playoff_teams" value="4">
+
+  <div class="sim-pick-grid">
+    {% for t in teams %}
+    <label class="sim-pick-card">
+      <input type="radio" name="team_id" value="{{ t.id }}" {{ 'checked' if loop.first else '' }}>
+      <div class="sim-pick-card-inner">
+        <div class="sim-pick-name">{{ t.name }}</div>
+        <div class="sim-pick-ovr">
+          <span class="sim-ovr-bar" style="width: {{ ((t.avg_overall / 20) * 100) | int }}%"></span>
+          <span class="sim-ovr-val">OVR {{ t.avg_overall }}</span>
+        </div>
+        <div class="sim-pick-quality">
+          {% if t.avg_overall >= 13 %}
+            <span class="sim-quality-badge quality-strong">Strong</span>
+          {% elif t.avg_overall >= 11 %}
+            <span class="sim-quality-badge quality-mid">Average</span>
+          {% else %}
+            <span class="sim-quality-badge quality-weak">Rebuilding</span>
+          {% endif %}
+        </div>
+      </div>
+    </label>
+    {% endfor %}
+  </div>
+
+  <div style="margin-top: 1.5rem;">
+    <button type="submit" class="btn btn-primary">Start Managing This Team</button>
+    <a href="{{ url_for('sim.play_index') }}" style="margin-left:1rem;font-size:0.9rem;">Cancel</a>
+  </div>
+</form>
+{% endblock %}

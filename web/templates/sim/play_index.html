@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Play – Sim Game{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+  <a href="{{ url_for('sim.index') }}">Sim Game</a> &rsaquo; Play
+</div>
+
+<h1 class="page-title">Play a Season</h1>
+<p class="page-intro">Take control of a team, set your lines each matchday, and guide them through a full season.</p>
+
+{# ── New game form ───────────────────────────────────────────────────────── #}
+<section class="sim-new-season card">
+  <h2 class="section-title">Start New Game</h2>
+  <form action="{{ url_for('sim.play_new') }}" method="post" class="sim-form">
+    <div class="sim-form-grid">
+
+      <div class="form-field">
+        <label for="p_name">League Name</label>
+        <input id="p_name" name="name" type="text" value="Sim Hockey League" maxlength="60">
+      </div>
+
+      <div class="form-field">
+        <label for="p_season">Season</label>
+        <input id="p_season" name="season" type="text" value="2026-27" maxlength="10">
+      </div>
+
+      <div class="form-field">
+        <label for="p_teams">Teams</label>
+        <select id="p_teams" name="n_teams">
+          {% for n in [6, 8, 10, 12] %}
+            <option value="{{ n }}" {{ 'selected' if n == 8 else '' }}>{{ n }} teams</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-field">
+        <label for="p_playoffs">Playoff Teams</label>
+        <select id="p_playoffs" name="playoffs">
+          <option value="4" selected>Top 4</option>
+          <option value="8">Top 8</option>
+        </select>
+      </div>
+
+      <div class="form-field">
+        <label for="p_seed">Seed <span class="label-hint">(optional)</span></label>
+        <input id="p_seed" name="seed" type="number" min="0" placeholder="random">
+      </div>
+
+    </div>
+    <button type="submit" class="btn btn-primary sim-submit">Generate League &amp; Pick Team</button>
+  </form>
+</section>
+
+{# ── Active games ────────────────────────────────────────────────────────── #}
+{% if games %}
+<section class="sim-history">
+  <h2 class="section-title">Your Seasons</h2>
+  <table class="standings-table sim-history-table">
+    <thead>
+      <tr>
+        <th class="team-col">League</th>
+        <th>Season</th>
+        <th>Your Team</th>
+        <th>Matchday</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for g in games %}
+      <tr>
+        <td class="team-col">{{ g.league_name }}</td>
+        <td>{{ g.season }}</td>
+        <td><strong>{{ g.team_name }}</strong></td>
+        <td>{{ g.current_matchday - 1 }} / {{ g.total_matchdays }}</td>
+        <td>
+          <span class="sim-status-badge sim-status-{{ g.status }}">
+            {{ g.status | title }}
+          </span>
+        </td>
+        <td>
+          <a href="{{ url_for('sim.play_game', gid=g.id) }}" class="btn btn-primary" style="padding:0.3rem 0.9rem;font-size:0.85rem;">
+            {{ 'View' if g.status == 'finished' else 'Continue' }}
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% else %}
+<p class="no-data" style="margin-top:1rem;">No games started yet. Generate a league above to begin.</p>
+{% endif %}
+{% endblock %}

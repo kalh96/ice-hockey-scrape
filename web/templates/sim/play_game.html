@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+{% block title %}{{ game.team_name }} – {{ game.league_name }} – Sim Game{% endblock %}
+
+{% macro result_badge(rt, won) %}
+  {%- if won and rt == 'REG' -%}<span class="sim-result-badge sim-result-w">W</span>
+  {%- elif won -%}<span class="sim-result-badge sim-result-otw">OTW</span>
+  {%- elif rt == 'REG' -%}<span class="sim-result-badge sim-result-l">L</span>
+  {%- else -%}<span class="sim-result-badge sim-result-otl">OTL</span>{%- endif -%}
+{% endmacro %}
+
+{% block content %}
+<div class="breadcrumb">
+  <a href="{{ url_for('sim.index') }}">Sim Game</a> &rsaquo;
+  <a href="{{ url_for('sim.play_index') }}">Play</a> &rsaquo;
+  {{ game.team_name }}
+</div>
+
+<h1 class="page-title">{{ game.team_name }}</h1>
+<p class="text-muted">{{ game.league_name }} &middot; {{ game.season }}</p>
+
+{# ── FINISHED STATE ──────────────────────────────────────────────────────── #}
+{% if phase == 'finished' %}
+
+  {% if champion == game.team_name %}
+    <div class="sim-champion-banner" style="margin-bottom:1.5rem;">
+      <span class="champion-label">Champions</span>
+      <strong>{{ champion }} — You Won!</strong>
+    </div>
+  {% elif champion %}
+    <div class="sim-status-note">
+      Season complete. Champions: <strong>{{ champion }}</strong>
+    </div>
+  {% endif %}
+
+  <div class="two-col-layout">
+    <div class="two-col-main">
+      {% if playoffs %}
+        <h2 class="section-title">Playoffs</h2>
+        {% for rnd in playoffs %}
+          <h3 class="standings-group-title">{{ rnd.label }}</h3>
+          <div class="result-list">
+            {% for f in rnd.fixtures %}
+              <a href="{{ url_for('sim.match', lid=league.id, fid=f.id) }}" class="result-card-link">
+                <div class="result-card">
+                  <div class="team-home {{ 'team-user' if f.home_team == game.team_name else '' }}">{{ f.home_team }}</div>
+                  <div class="result-card-centre">
+                    <div class="score">{{ f.home_score }} – {{ f.away_score }}</div>
+                    {% if f.result_type != 'REG' %}<div class="meta"><span class="badge">{{ f.result_type }}</span></div>{% endif %}
+                  </div>
+                  <div class="team-away {{ 'team-user' if f.away_team == game.team_name else '' }}">{{ f.away_team }}</div>
+                </div>
+              </a>
+            {% endfor %}
+          </div>
+        {% endfor %}
+      {% endif %}
+    </div>
+    <div class="two-col-sidebar">
+      <h2 class="section-title">Final Standings</h2>
+      {% include 'sim/_standings_table.html' %}
+      <div class="standings-more">
+        <a href="{{ url_for('sim.season', lid=league.id) }}">Full season view →</a>
+      </div>
+    </div>
+  </div>
+
+{# ── ACTIVE STATE ────────────────────────────────────────────────────────── #}
+{% else %}
+
+  {# Header bar #}
+  <div class="sim-game-header">
+    <div class="sim-header-stat">
+      <span class="sim-stat-val">{{ game.current_matchday - 1 }}</span>
+      <span class="sim-stat-lbl">Played</span>
+    </div>
+    <div class="sim-header-stat">
+      <span class="sim-stat-val">{{ game.total_matchdays - (game.current_matchday - 1) }}</span>
+      <span class="sim-stat-lbl">Remaining</span>
+    </div>
+    <div class="sim-header-stat">
+      <span class="sim-stat-val">{{ user_pos }}</span>
+      <span class="sim-stat-lbl">Position</span>
+    </div>
+    {% set user_row = standings | selectattr('team_id', 'eq', game.user_team_id) | first | default(none) %}
+    {% if user_row %}
+    <div class="sim-header-stat">
+      <span class="sim-stat-val">{{ user_row.pts }}</span>
+      <span class="sim-stat-lbl">Points</span>
+    </div>
+    <div class="sim-header-stat">
+      <span class="sim-stat-val">{{ user_row.w + user_row.otw }}–{{ user_row.l + user_row.otl }}</span>
+      <span class="sim-stat-lbl">W–L</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="two-col-layout">
+
+    {# Left — matchday + line editor ────────────────────────────────────── #}
+    <div class="two-col-main">
+
+      {# Previous matchday results #}
+      {% if prev_results and prev_md >= 1 %}
+        <h2 class="section-title">Matchday {{ prev_md }} Results</h2>
+        <div class="result-list" style="margin-bottom:1.5rem;">
+          {% for f in prev_results %}
+            {% if f.played %}
+              {% set user_home = f.home_team == game.team_name %}
+              {% set user_away = f.away_team == game.team_name %}
+              {% set is_user   = user_home or user_away %}
+              {% set won = (f.home_score > f.away_score and user_home) or (f.away_score > f.home_score and user_away) %}
+              <a href="{{ url_for('sim.match', lid=league.id, fid=f.id) }}" class="result-card-link">
+                <div class="result-card {{ 'result-card--user' if is_user else '' }}">
+                  <div class="team-home {{ 'team-user' if user_home else '' }}">{{ f.home_team }}</div>
+                  <div class="result-card-centre">
+                    <div class="score">{{ f.home_score }} – {{ f.away_score }}</div>
+                    {% if f.result_type and f.result_type != 'REG' %}
+                      <div class="meta"><span class="badge">{{ f.result_type }}</span></div>
+                    {% endif %}
+                    {% if is_user %}
+                      <div class="meta">{{ result_badge(f.result_type, won) }}</div>
+                    {% endif %}
+                  </div>
+                  <div class="team-away {{ 'team-user' if user_away else '' }}">{{ f.away_team }}</div>
+                </div>
+              </a>
+            {% endif %}
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {# Upcoming matchday + line editor #}
+      <h2 class="section-title">Matchday {{ game.current_matchday }} of {{ game.total_matchdays }}</h2>
+
+      {# Find user's fixture #}
+      {% set user_fixture = upcoming | selectattr('home_team', 'eq', game.team_name) | first | default(none) %}
+      {% if not user_fixture %}
+        {% set user_fixture = upcoming | selectattr('away_team', 'eq', game.team_name) | first | default(none) %}
+      {% endif %}
+
+      {% if user_fixture %}
+        {% set is_home = user_fixture.home_team == game.team_name %}
+        {% set opp = user_fixture.away_team if is_home else user_fixture.home_team %}
+        <div class="sim-your-fixture">
+          <span class="sim-fixture-label">Your fixture</span>
+          <span class="sim-fixture-teams">
+            {{ game.team_name }} <em>({{ 'Home' if is_home else 'Away' }})</em> vs <strong>{{ opp }}</strong>
+          </span>
+        </div>
+      {% endif %}
+
+      {# All fixtures this matchday (non-user) #}
+      {% set other_fixtures = upcoming | rejectattr('home_team', 'eq', game.team_name) | rejectattr('away_team', 'eq', game.team_name) | list %}
+      {% if other_fixtures %}
+        <div class="sim-other-fixtures">
+          <span class="sim-other-label">Other games</span>
+          {% for f in other_fixtures %}
+            <span class="sim-other-game">{{ f.home_team }} vs {{ f.away_team }}</span>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {# Line editor ──────────────────────────────────────────────────────── #}
+      <form action="{{ url_for('sim.play_simulate', gid=game.id) }}" method="post" class="sim-lines-form">
+
+        <h3 class="section-title mt-2">Set Your Lines</h3>
+        <p class="text-muted" style="font-size:0.85rem;margin-bottom:1rem;">Reorder your squad before the matchday simulates. Line 1 gets the most ice time.</p>
+
+        {# Forwards #}
+        {% set lws = players_by_pos.get('LW', []) %}
+        {% set cs  = players_by_pos.get('C',  []) %}
+        {% set rws = players_by_pos.get('RW', []) %}
+
+        <div class="sim-lines-block">
+          <div class="sim-lines-header">
+            <span></span><span>LW</span><span>C</span><span>RW</span>
+          </div>
+          {% for n in range(1, 5) %}
+          <div class="sim-line-row">
+            <span class="sim-line-label">Line {{ n }}</span>
+
+            <select name="line_{{ n }}_lw" class="sim-player-select">
+              {% for p in lws %}
+                <option value="{{ p.id }}" {{ 'selected' if p.line_number == n and p.slot == 'lw' else '' }}>
+                  {{ p.name }} ({{ "%.1f"|format(p.overall) }})
+                </option>
+              {% endfor %}
+            </select>
+
+            <select name="line_{{ n }}_c" class="sim-player-select">
+              {% for p in cs %}
+                <option value="{{ p.id }}" {{ 'selected' if p.line_number == n and p.slot == 'c' else '' }}>
+                  {{ p.name }} ({{ "%.1f"|format(p.overall) }})
+                </option>
+              {% endfor %}
+            </select>
+
+            <select name="line_{{ n }}_rw" class="sim-player-select">
+              {% for p in rws %}
+                <option value="{{ p.id }}" {{ 'selected' if p.line_number == n and p.slot == 'rw' else '' }}>
+                  {{ p.name }} ({{ "%.1f"|format(p.overall) }})
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          {% endfor %}
+        </div>
+
+        {# Defence #}
+        {% set lds = players_by_pos.get('LD', []) %}
+        {% set rds = players_by_pos.get('RD', []) %}
+
+        <div class="sim-lines-block sim-lines-pairs" style="margin-top:1rem;">
+          <div class="sim-lines-header">
+            <span></span><span>LD</span><span>RD</span>
+          </div>
+          {% for n in range(1, 4) %}
+          <div class="sim-line-row">
+            <span class="sim-line-label">Pair {{ n }}</span>
+
+            <select name="pair_{{ n }}_ld" class="sim-player-select">
+              {% for p in lds %}
+                <option value="{{ p.id }}" {{ 'selected' if p.line_number == n and p.slot == 'ld' else '' }}>
+                  {{ p.name }} ({{ "%.1f"|format(p.overall) }})
+                </option>
+              {% endfor %}
+            </select>
+
+            <select name="pair_{{ n }}_rd" class="sim-player-select">
+              {% for p in rds %}
+                <option value="{{ p.id }}" {{ 'selected' if p.line_number == n and p.slot == 'rd' else '' }}>
+                  {{ p.name }} ({{ "%.1f"|format(p.overall) }})
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          {% endfor %}
+        </div>
+
+        {# Goalie #}
+        {% set goalies = players_by_pos.get('G', []) %}
+        {% if goalies %}
+        <div class="sim-lines-block sim-lines-pairs" style="margin-top:1rem;">
+          <div class="sim-lines-header"><span></span><span>Starter</span></div>
+          <div class="sim-line-row">
+            <span class="sim-line-label">Goalie</span>
+            <select name="goalie_starter" class="sim-player-select">
+              {% for g in goalies %}
+                <option value="{{ g.id }}" {{ 'selected' if g.line_number == 1 else '' }}>
+                  {{ g.name }} ({{ "%.1f"|format(g.overall) }})
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        {% endif %}
+
+        <div style="margin-top:1.5rem;">
+          <button type="submit" class="btn btn-primary">
+            Simulate Matchday {{ game.current_matchday }}
+          </button>
+        </div>
+      </form>
+
+    </div>
+
+    {# Right — Standings ─────────────────────────────────────────────────── #}
+    <div class="two-col-sidebar">
+      <h2 class="section-title">Standings</h2>
+      <table class="standings-table">
+        <thead>
+          <tr>
+            <th>#</th><th class="team-col">Team</th>
+            <th>GP</th><th>PTS</th><th>GD</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in standings %}
+          <tr class="{{ 'standings-user-row' if row.team_id == game.user_team_id else '' }}">
+            <td>{{ row.pos }}</td>
+            <td class="team-col">
+              {% if row.team_id == game.user_team_id %}
+                <strong>{{ row.team }}</strong>
+              {% else %}
+                {{ row.team }}
+              {% endif %}
+            </td>
+            <td>{{ row.gp }}</td>
+            <td><strong>{{ row.pts }}</strong></td>
+            <td>{{ '+' ~ row.gd if row.gd > 0 else row.gd }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <div class="standings-more">
+        <a href="{{ url_for('sim.season', lid=league.id) }}">Full view →</a>
+        <a href="{{ url_for('sim.scorers', lid=league.id) }}" style="margin-left:0.75rem;">Scorers →</a>
+      </div>
+    </div>
+
+  </div>
+{% endif %}
+{% endblock %}

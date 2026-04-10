@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}{{ fixture.home_team }} vs {{ fixture.away_team }} – Sim Game{% endblock %}
+
+{% macro period_label(p) %}
+  {%- if p == '1' or p == 1 -%}1st Period
+  {%- elif p == '2' or p == 2 -%}2nd Period
+  {%- elif p == '3' or p == 3 -%}3rd Period
+  {%- elif p == 'OT' or p == 4 -%}Overtime
+  {%- elif p == 'SO' -%}Shootout
+  {%- else -%}{{ p }}{%- endif -%}
+{% endmacro %}
+
+{% macro short(name) %}
+  {%- if name and ' ' in name -%}{{ name.split()[0][0] }}. {{ name.split()[1:] | join(' ') }}{%- else -%}{{ name or '' }}{%- endif -%}
+{% endmacro %}
+
+{% block content %}
+<div class="breadcrumb">
+  <a href="{{ url_for('sim.index') }}">Sim Game</a> &rsaquo;
+  <a href="{{ url_for('sim.season', lid=league.id) }}">{{ league.name }}</a> &rsaquo;
+  Match Report
+</div>
+
+{# ── Score header ─────────────────────────────────────────────────────────── #}
+<div class="sim-match-header">
+  <div class="sim-match-team sim-match-team--home">
+    <a href="{{ url_for('sim.team', lid=league.id, tid=fixture.home_team_id) }}">{{ fixture.home_team }}</a>
+  </div>
+  <div class="sim-match-scorebox">
+    <span class="sim-match-score">{{ fixture.home_score }} – {{ fixture.away_score }}</span>
+    {% if fixture.result_type and fixture.result_type != 'REG' %}
+      <span class="sim-match-ot badge">{{ fixture.result_type }}</span>
+    {% endif %}
+    <div class="sim-match-meta">{{ league.name }} &middot; {{ league.season }}</div>
+  </div>
+  <div class="sim-match-team sim-match-team--away">
+    <a href="{{ url_for('sim.team', lid=league.id, tid=fixture.away_team_id) }}">{{ fixture.away_team }}</a>
+  </div>
+</div>
+
+{# ── Events by period ─────────────────────────────────────────────────────── #}
+{% if periods %}
+<div class="sim-match-events">
+  {% for period in periods %}
+    <h3 class="sim-period-header">{{ period_label(period.period) }}</h3>
+    <div class="sim-event-list">
+      {% for ev in period.events %}
+
+        {% if ev.event_type == 'goal' %}
+          <div class="sim-event sim-event--goal {{ 'sim-event--home' if ev.team_name == fixture.home_team else 'sim-event--away' }}">
+            <span class="sim-event-time">{{ ev.time }}</span>
+            <span class="sim-event-badge {{ 'badge-pp' if ev.goal_type == 'PPG' else ('badge-sh' if ev.goal_type == 'SHG' else ('badge-ot' if ev.goal_type == 'OTG' else 'badge-goal')) }}">
+              {{ ev.goal_type or 'GOAL' }}
+            </span>
+            <span class="sim-event-desc">
+              <strong>{{ short(ev.scorer_name) }}</strong>
+              {% if ev.assist1_name %}
+                <span class="sim-event-assist">({{ short(ev.assist1_name) }}{% if ev.assist2_name %}, {{ short(ev.assist2_name) }}{% endif %})</span>
+              {% else %}
+                <span class="sim-event-assist">(unassisted)</span>
+              {% endif %}
+              &mdash; {{ ev.team_name }}
+            </span>
+            <span class="sim-event-score">{{ ev.home_score }}–{{ ev.away_score }}</span>
+          </div>
+
+        {% elif ev.event_type == 'penalty' %}
+          <div class="sim-event sim-event--penalty">
+            <span class="sim-event-time">{{ ev.time }}</span>
+            <span class="sim-event-badge badge-pen">PEN</span>
+            <span class="sim-event-desc">
+              {{ short(ev.penalty_player) }} ({{ ev.team_name }}) &mdash; {{ ev.infraction }} ({{ ev.minutes }} min)
+            </span>
+          </div>
+
+        {% elif ev.event_type == 'shootout' %}
+          <div class="sim-event sim-event--shootout">
+            <span class="sim-event-badge badge-so">SO</span>
+            <span class="sim-event-desc">Shootout won by <strong>{{ ev.team_name }}</strong></span>
+          </div>
+        {% endif %}
+
+      {% endfor %}
+    </div>
+  {% endfor %}
+</div>
+{% else %}
+<p class="no-data">No event data recorded for this match.</p>
+{% endif %}
+
+<div class="sim-match-footer">
+  <a href="{{ url_for('sim.season', lid=league.id) }}">&larr; Back to {{ league.name }}</a>
+</div>
+{% endblock %}
