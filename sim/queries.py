@@ -278,6 +278,22 @@ def get_user_team_players(team_id: int):
     return by_pos
 
 
+def get_playoff_upcoming_fixtures(league_id: int, phase: str) -> list[dict]:
+    """Return all unplayed fixtures for the given playoff phase."""
+    conn = get_conn()
+    rows = conn.execute("""
+        SELECT f.id, f.phase, f.home_team_id, f.away_team_id,
+               ht.name AS home_team, at.name AS away_team
+        FROM sim_fixtures f
+        JOIN sim_teams ht ON f.home_team_id = ht.id
+        JOIN sim_teams at ON f.away_team_id = at.id
+        WHERE f.league_id=? AND f.phase=? AND f.played=0
+        ORDER BY f.id ASC
+    """, (league_id, phase)).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
 def get_league_champion(league_id: int):
     """Return the name of the team that won the final playoff fixture."""
     conn = get_conn()

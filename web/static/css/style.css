@@ -1500,12 +1500,12 @@ footer a:hover {
 
 .sim-form-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr));
   gap: 1rem;
   margin-bottom: 1.25rem;
 }
 
-.form-field { display: flex; flex-direction: column; gap: 0.35rem; }
+.form-field { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
 .form-field label { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); }
 .form-field input,
 .form-field select {
@@ -1515,6 +1515,9 @@ footer a:hover {
   font-size: 0.95rem;
   background: #fff;
   color: var(--text);
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 .label-hint { font-weight: 400; font-size: 0.78rem; color: var(--text-muted); }
 
@@ -1524,7 +1527,7 @@ footer a:hover {
 .btn-primary:hover { background: #00387a; color: #fff; }
 .sim-submit { margin-top: 0.25rem; }
 
-.sim-history { margin-top: 2rem; }
+.sim-history { margin-top: 2rem; overflow-x: auto; }
 .sim-history-table .text-muted { color: var(--text-muted); font-size: 0.88rem; }
 
 /* -- Nav tabs (shared) ------------------------------------- */
@@ -1720,8 +1723,9 @@ footer a:hover {
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 0.75rem;
   margin-bottom: 1rem;
+  align-items: stretch;
 }
-.sim-pick-card { cursor: pointer; }
+.sim-pick-card { cursor: pointer; display: flex; }
 .sim-pick-card input[type="radio"] { position: absolute; opacity: 0; pointer-events: none; }
 .sim-pick-card-inner {
   border: 2px solid var(--border);
@@ -1729,6 +1733,9 @@ footer a:hover {
   padding: 1rem 0.9rem;
   transition: border-color 0.15s, background 0.15s;
   background: #fff;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 .sim-pick-card:hover .sim-pick-card-inner { border-color: var(--primary); background: var(--bg-subtle); }
 .sim-pick-card input:checked + .sim-pick-card-inner {
@@ -1811,9 +1818,6 @@ footer a:hover {
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
-.sim-lines-block .sim-lines-header:has(+ .sim-line-row + .sim-line-row + .sim-line-row) {
-  grid-template-columns: 70px 1fr 1fr;
-}
 .sim-line-row {
   display: grid;
   grid-template-columns: 70px 1fr 1fr 1fr;
@@ -1822,6 +1826,9 @@ footer a:hover {
   border-top: 1px solid var(--border);
   align-items: center;
 }
+/* All grid children must not overflow their column */
+.sim-line-row > *,
+.sim-lines-header > * { min-width: 0; }
 .sim-line-label {
   font-size: 0.8rem;
   font-weight: 600;
@@ -1836,8 +1843,17 @@ footer a:hover {
   background: #fff;
   color: var(--text);
   width: 100%;
+  min-width: 0;
 }
 .sim-player-select:focus { outline: 2px solid var(--primary); border-color: var(--primary); }
+.sim-lines-error {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #dc2626;
+  padding: 0.6rem 0.9rem;
+  border-radius: var(--radius);
+  font-size: 0.88rem;
+}
 
 /* User team highlighting */
 .team-user { font-weight: 700; color: var(--primary); }
@@ -1855,5 +1871,15 @@ footer a:hover {
   .sim-match-header { flex-direction: column; text-align: center; }
   .sim-match-team--home, .sim-match-team--away { text-align: center; }
   .sim-form-grid { grid-template-columns: 1fr 1fr; }
+  .sim-new-season.card { overflow: hidden; }
+}
+@media (max-width: 420px) {
+  .sim-form-grid { grid-template-columns: 1fr; }
+  .sim-pick-grid { grid-template-columns: 1fr 1fr; }
+  .sim-lines-header,
+  .sim-line-row { grid-template-columns: 55px 1fr 1fr 1fr; gap: 0.25rem; padding: 0.35rem 0.5rem; }
+  .sim-lines-block.sim-lines-pairs .sim-lines-header,
+  .sim-lines-block.sim-lines-pairs .sim-line-row { grid-template-columns: 55px 1fr 1fr; }
+  .sim-player-select { font-size: 0.75rem; padding: 0.25rem 0.2rem; }
 }
 

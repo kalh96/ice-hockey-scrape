@@ -220,24 +220,36 @@ def simulate_matchday(league_id: int, matchday: int, conn: sqlite3.Connection) -
 
 
 # ---------------------------------------------------------------------------
-# Managed playoffs
+# Managed playoffs — step-by-step (one round at a time)
 # ---------------------------------------------------------------------------
 
-def run_managed_playoffs(
+def _winner_id_from_result(league_id: int, result: dict, conn: sqlite3.Connection) -> int | None:
+    winner_name = (
+        result["home_team"] if result["home_score"] > result["away_score"]
+        else result["away_team"]
+    )
+    row = conn.execute(
+        "SELECT id FROM sim_teams WHERE league_id=? AND name=?",
+        (league_id, winner_name),
+    ).fetchone()
+    return row["id"] if row else None
+
+
+def init_managed_playoffs(
     game_id: int,
     league_id: int,
     n_playoff_teams: int,
     conn: sqlite3.Connection,
-) -> str | None:
+) -> None:
     """
-    Simulate single-elimination playoffs for a managed season.
-    Saves all playoff fixtures and events. Returns the champion name.
+    Called after the regular season ends.
+    Creates the first round of playoff fixtures (unplayed) and sets
+    status='playoff' with playoff_round pointing to the first round.
     """
-    from sim.db import insert_fixture, record_fixture_result
+    from sim.db import insert_fixture, advance_managed_season
 
-    # Determine playoff qualifiers from standings
     standings = conn.execute("""
-        SELECT t.id AS team_id, t.name AS team
+        SELECT t.id AS team_id
         FROM sim_standings s
         JOIN sim_teams t ON s.team_id = t.id
         WHERE s.league_id=? AND s.phase='regular'
@@ -247,61 +259,73 @@ def run_managed_playoffs(
 
     if len(standings) < 2:
         advance_managed_season(conn, game_id, status="finished")
-        return None
+        return
 
-    qualifiers = [dict(r) for r in standings]
-
-    def _simulate_playoff_game(home_id: int, away_id: int, phase: str) -> dict:
-        home = reconstruct_team(home_id, conn)
-        away = reconstruct_team(away_id, conn)
-        result = simulate_game(home, away)
-        fid = insert_fixture(conn, league_id, None, phase, home_id, away_id)
-        record_fixture_result(conn, fid, result)
-        return result
-
-    def _winner_id(result: dict) -> int:
-        winner_name = (
-            result["home_team"] if result["home_score"] > result["away_score"]
-            else result["away_team"]
-        )
-        row = conn.execute(
-            "SELECT id FROM sim_teams WHERE league_id=? AND name=?",
-            (league_id, winner_name),
-        ).fetchone()
-        return row["id"]
-
-    champion_name: str | None = None
+    q = [dict(r) for r in standings]
 
     if n_playoff_teams >= 8:
-        # Quarter-finals: 1v8, 2v7, 3v6, 4v5
-        pairs = [(0, 7), (1, 6), (2, 5), (3, 4)]
-        sf_ids = []
-        for s1, s2 in pairs:
-            r = _simulate_playoff_game(
-                qualifiers[s1]["team_id"], qualifiers[s2]["team_id"], "playoff_qf"
-            )
-            sf_ids.append(_winner_id(r))
-        # Semis and final from QF winners
-        sf1 = _simulate_playoff_game(sf_ids[0], sf_ids[3], "playoff_sf")
-        sf2 = _simulate_playoff_game(sf_ids[1], sf_ids[2], "playoff_sf")
-        fin = _simulate_playoff_game(_winner_id(sf1), _winner_id(sf2), "playoff_final")
+        for s1, s2 in [(0, 7), (1, 6), (2, 5), (3, 4)]:
+            insert_fixture(conn, league_id, None, "playoff_qf",
+                           q[s1]["team_id"], q[s2]["team_id"])
+        first_round = "playoff_qf"
     else:
-        # 4-team: 1v4, 2v3
-        sf1 = _simulate_playoff_game(
-            qualifiers[0]["team_id"], qualifiers[3]["team_id"], "playoff_sf"
-        )
-        sf2 = _simulate_playoff_game(
-            qualifiers[1]["team_id"], qualifiers[2]["team_id"], "playoff_sf"
-        )
-        fin = _simulate_playoff_game(_winner_id(sf1), _winner_id(sf2), "playoff_final")
+        insert_fixture(conn, league_id, None, "playoff_sf",
+                       q[0]["team_id"], q[3]["team_id"])
+        insert_fixture(conn, league_id, None, "playoff_sf",
+                       q[1]["team_id"], q[2]["team_id"])
+        first_round = "playoff_sf"
 
     conn.commit()
-    winner_id = _winner_id(fin)
-    row = conn.execute("SELECT name FROM sim_teams WHERE id=?", (winner_id,)).fetchone()
-    champion_name = row["name"] if row else None
+    advance_managed_season(conn, game_id, status="playoff", playoff_round=first_round)
 
-    advance_managed_season(conn, game_id, status="finished")
-    return champion_name
+
+def simulate_playoff_round(
+    game_id: int,
+    league_id: int,
+    phase: str,
+    conn: sqlite3.Connection,
+) -> list[int]:
+    """
+    Simulate all unplayed fixtures for the current playoff phase.
+    Creates next-round fixtures and advances the managed season state.
+    Returns list of winner team IDs in bracket order.
+    """
+    from sim.db import insert_fixture, record_fixture_result, advance_managed_season
+
+    fixtures = conn.execute("""
+        SELECT f.id, f.home_team_id, f.away_team_id
+        FROM sim_fixtures f
+        WHERE f.league_id=? AND f.phase=? AND f.played=0
+        ORDER BY f.id ASC
+    """, (league_id, phase)).fetchall()
+
+    winner_ids: list[int] = []
+    for fx in fixtures:
+        home = reconstruct_team(fx["home_team_id"], conn)
+        away = reconstruct_team(fx["away_team_id"], conn)
+        if not home or not away:
+            continue
+        result = simulate_game(home, away)
+        record_fixture_result(conn, fx["id"], result)
+        wid = _winner_id_from_result(league_id, result, conn)
+        if wid:
+            winner_ids.append(wid)
+
+    conn.commit()
+
+    if phase == "playoff_qf" and len(winner_ids) >= 4:
+        insert_fixture(conn, league_id, None, "playoff_sf", winner_ids[0], winner_ids[3])
+        insert_fixture(conn, league_id, None, "playoff_sf", winner_ids[1], winner_ids[2])
+        conn.commit()
+        advance_managed_season(conn, game_id, status="playoff", playoff_round="playoff_sf")
+    elif phase == "playoff_sf" and len(winner_ids) >= 2:
+        insert_fixture(conn, league_id, None, "playoff_final", winner_ids[0], winner_ids[1])
+        conn.commit()
+        advance_managed_season(conn, game_id, status="playoff", playoff_round="playoff_final")
+    elif phase == "playoff_final":
+        advance_managed_season(conn, game_id, status="finished")
+
+    return winner_ids
 
 
 # ---------------------------------------------------------------------------

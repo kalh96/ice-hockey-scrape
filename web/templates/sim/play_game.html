@@ -8,6 +8,126 @@
   {%- else -%}<span class="sim-result-badge sim-result-otl">OTL</span>{%- endif -%}
 {% endmacro %}
 
+{% macro round_label(phase) %}
+  {%- if phase == 'playoff_qf' -%}Quarter-Finals
+  {%- elif phase == 'playoff_sf' -%}Semi-Finals
+  {%- elif phase == 'playoff_final' -%}Final
+  {%- else -%}{{ phase }}{%- endif -%}
+{% endmacro %}
+
+{# ── Reusable line editor macro ──────────────────────────────────────────── #}
+{% macro line_editor(action_url, submit_label) %}
+<form action="{{ action_url }}" method="post" class="sim-lines-form" id="lines-form">
+
+  <h3 class="section-title mt-2">Set Your Lines</h3>
+  <p class="text-muted" style="font-size:0.85rem;margin-bottom:1rem;">
+    Each player can only appear in one slot. Line 1 gets the most ice time.
+  </p>
+
+  {# Forwards #}
+  {% set lws = players_by_pos.get('LW', []) %}
+  {% set cs  = players_by_pos.get('C',  []) %}
+  {% set rws = players_by_pos.get('RW', []) %}
+
+  <div class="sim-lines-block">
+    <div class="sim-lines-header">
+      <span></span><span>LW</span><span>C</span><span>RW</span>
+    </div>
+    {% for n in range(1, 5) %}
+    <div class="sim-line-row">
+      <span class="sim-line-label">Line {{ n }}</span>
+
+      <select name="line_{{ n }}_lw" class="sim-player-select" data-pos="lw">
+        <option value="0">— Vacant —</option>
+        {% for p in lws %}
+          <option value="{{ p.id }}" {{ 'selected' if p.line_number == n and p.slot == 'lw' else '' }}>
+            {{ p.name }} ({{ "%.1f"|format(p.overall) }})
+          </option>
+        {% endfor %}
+      </select>
+
+      <select name="line_{{ n }}_c" class="sim-player-select" data-pos="c">
+        <option value="0">— Vacant —</option>
+        {% for p in cs %}
+          <option value="{{ p.id }}" {{ 'selected' if p.line_number == n and p.slot == 'c' else '' }}>
+            {{ p.name }} ({{ "%.1f"|format(p.overall) }})
+          </option>
+        {% endfor %}
+      </select>
+
+      <select name="line_{{ n }}_rw" class="sim-player-select" data-pos="rw">
+        <option value="0">— Vacant —</option>
+        {% for p in rws %}
+          <option value="{{ p.id }}" {{ 'selected' if p.line_number == n and p.slot == 'rw' else '' }}>
+            {{ p.name }} ({{ "%.1f"|format(p.overall) }})
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endfor %}
+  </div>
+
+  {# Defence #}
+  {% set lds = players_by_pos.get('LD', []) %}
+  {% set rds = players_by_pos.get('RD', []) %}
+
+  <div class="sim-lines-block sim-lines-pairs" style="margin-top:1rem;">
+    <div class="sim-lines-header">
+      <span></span><span>LD</span><span>RD</span>
+    </div>
+    {% for n in range(1, 4) %}
+    <div class="sim-line-row">
+      <span class="sim-line-label">Pair {{ n }}</span>
+
+      <select name="pair_{{ n }}_ld" class="sim-player-select" data-pos="ld">
+        <option value="0">— Vacant —</option>
+        {% for p in lds %}
+          <option value="{{ p.id }}" {{ 'selected' if p.line_number == n and p.slot == 'ld' else '' }}>
+            {{ p.name }} ({{ "%.1f"|format(p.overall) }})
+          </option>
+        {% endfor %}
+      </select>
+
+      <select name="pair_{{ n }}_rd" class="sim-player-select" data-pos="rd">
+        <option value="0">— Vacant —</option>
+        {% for p in rds %}
+          <option value="{{ p.id }}" {{ 'selected' if p.line_number == n and p.slot == 'rd' else '' }}>
+            {{ p.name }} ({{ "%.1f"|format(p.overall) }})
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endfor %}
+  </div>
+
+  {# Goalie #}
+  {% set goalies = players_by_pos.get('G', []) %}
+  {% if goalies %}
+  <div class="sim-lines-block sim-lines-pairs" style="margin-top:1rem;">
+    <div class="sim-lines-header"><span></span><span>Starter</span></div>
+    <div class="sim-line-row">
+      <span class="sim-line-label">Goalie</span>
+      <select name="goalie_starter" class="sim-player-select">
+        {% for g in goalies %}
+          <option value="{{ g.id }}" {{ 'selected' if g.line_number == 1 else '' }}>
+            {{ g.name }} ({{ "%.1f"|format(g.overall) }})
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+  {% endif %}
+
+  <div id="lines-error" class="sim-lines-error" style="display:none;margin-top:0.75rem;">
+    <span id="lines-error-msg"></span>
+  </div>
+
+  <div style="margin-top:1.5rem;">
+    <button type="submit" class="btn btn-primary">{{ submit_label }}</button>
+  </div>
+</form>
+{% endmacro %}
+
 {% block content %}
 <div class="breadcrumb">
   <a href="{{ url_for('sim.index') }}">Sim Game</a> &rsaquo;
@@ -40,7 +160,7 @@
           <h3 class="standings-group-title">{{ rnd.label }}</h3>
           <div class="result-list">
             {% for f in rnd.fixtures %}
-              <a href="{{ url_for('sim.match', lid=league.id, fid=f.id) }}" class="result-card-link">
+              <a href="{{ url_for('sim.match', lid=league.id, fid=f.id, gid=game.id) }}" class="result-card-link">
                 <div class="result-card">
                   <div class="team-home {{ 'team-user' if f.home_team == game.team_name else '' }}">{{ f.home_team }}</div>
                   <div class="result-card-centre">
@@ -64,7 +184,119 @@
     </div>
   </div>
 
-{# ── ACTIVE STATE ────────────────────────────────────────────────────────── #}
+{# ── PLAYOFF STATE ───────────────────────────────────────────────────────── #}
+{% elif phase == 'playoff' %}
+
+  {# Header bar #}
+  <div class="sim-game-header">
+    <div class="sim-header-stat">
+      <span class="sim-stat-val">{{ round_label(playoff_round) }}</span>
+      <span class="sim-stat-lbl">Playoff Round</span>
+    </div>
+    <div class="sim-header-stat">
+      <span class="sim-stat-val">{{ user_pos }}</span>
+      <span class="sim-stat-lbl">Reg. Season Pos.</span>
+    </div>
+    {% set user_row = standings | selectattr('team_id', 'eq', game.user_team_id) | first | default(none) %}
+    {% if user_row %}
+    <div class="sim-header-stat">
+      <span class="sim-stat-val">{{ user_row.pts }}</span>
+      <span class="sim-stat-lbl">Reg. Season Pts</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="two-col-layout">
+    <div class="two-col-main">
+
+      {# Completed playoff rounds so far #}
+      {% if completed_playoffs %}
+        <h2 class="section-title">Playoff Results So Far</h2>
+        {% for rnd in completed_playoffs %}
+          <h3 class="standings-group-title">{{ rnd.label }}</h3>
+          <div class="result-list" style="margin-bottom:1rem;">
+            {% for f in rnd.fixtures %}
+              <a href="{{ url_for('sim.match', lid=league.id, fid=f.id, gid=game.id) }}" class="result-card-link">
+                <div class="result-card {{ 'result-card--user' if f.home_team == game.team_name or f.away_team == game.team_name else '' }}">
+                  <div class="team-home {{ 'team-user' if f.home_team == game.team_name else '' }}">{{ f.home_team }}</div>
+                  <div class="result-card-centre">
+                    <div class="score">{{ f.home_score }} – {{ f.away_score }}</div>
+                    {% if f.result_type and f.result_type != 'REG' %}
+                      <div class="meta"><span class="badge">{{ f.result_type }}</span></div>
+                    {% endif %}
+                  </div>
+                  <div class="team-away {{ 'team-user' if f.away_team == game.team_name else '' }}">{{ f.away_team }}</div>
+                </div>
+              </a>
+            {% endfor %}
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      {# Upcoming round #}
+      <h2 class="section-title">{{ round_label(playoff_round) }}</h2>
+
+      {% set user_fixture = upcoming_playoff | selectattr('home_team', 'eq', game.team_name) | first | default(none) %}
+      {% if not user_fixture %}
+        {% set user_fixture = upcoming_playoff | selectattr('away_team', 'eq', game.team_name) | first | default(none) %}
+      {% endif %}
+
+      {% if user_fixture %}
+        {% set is_home = user_fixture.home_team == game.team_name %}
+        {% set opp = user_fixture.away_team if is_home else user_fixture.home_team %}
+        <div class="sim-your-fixture">
+          <span class="sim-fixture-label">Your fixture</span>
+          <span class="sim-fixture-teams">
+            {{ game.team_name }} <em>({{ 'Home' if is_home else 'Away' }})</em> vs <strong>{{ opp }}</strong>
+          </span>
+        </div>
+      {% else %}
+        <div class="sim-status-note">Your team did not qualify for this round.</div>
+      {% endif %}
+
+      {% set other_playoff = upcoming_playoff | rejectattr('home_team', 'eq', game.team_name) | rejectattr('away_team', 'eq', game.team_name) | list %}
+      {% if other_playoff %}
+        <div class="sim-other-fixtures">
+          <span class="sim-other-label">Other games</span>
+          {% for f in other_playoff %}
+            <span class="sim-other-game">{{ f.home_team }} vs {{ f.away_team }}</span>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {{ line_editor(url_for('sim.play_simulate', gid=game.id), 'Simulate ' ~ round_label(playoff_round)) }}
+
+    </div>
+
+    <div class="two-col-sidebar">
+      <h2 class="section-title">Regular Season Standings</h2>
+      <table class="standings-table">
+        <thead>
+          <tr><th>#</th><th class="team-col">Team</th><th>GP</th><th>PTS</th><th>GD</th></tr>
+        </thead>
+        <tbody>
+          {% for row in standings %}
+          <tr class="{{ 'standings-user-row' if row.team_id == game.user_team_id else '' }}">
+            <td>{{ row.pos }}</td>
+            <td class="team-col">
+              {% if row.team_id == game.user_team_id %}<strong>{{ row.team }}</strong>
+              {% else %}{{ row.team }}{% endif %}
+            </td>
+            <td>{{ row.gp }}</td>
+            <td><strong>{{ row.pts }}</strong></td>
+            <td>{{ '+' ~ row.gd if row.gd > 0 else row.gd }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <div class="standings-more">
+        <a href="{{ url_for('sim.season', lid=league.id) }}">Full view →</a>
+        <a href="{{ url_for('sim.scorers', lid=league.id) }}" style="margin-left:0.75rem;">Scorers →</a>
+      </div>
+    </div>
+  </div>
+
+{# ── ACTIVE (regular season) STATE ───────────────────────────────────────── #}
 {% else %}
 
   {# Header bar #}
@@ -109,7 +341,7 @@
               {% set user_away = f.away_team == game.team_name %}
               {% set is_user   = user_home or user_away %}
               {% set won = (f.home_score > f.away_score and user_home) or (f.away_score > f.home_score and user_away) %}
-              <a href="{{ url_for('sim.match', lid=league.id, fid=f.id) }}" class="result-card-link">
+              <a href="{{ url_for('sim.match', lid=league.id, fid=f.id, gid=game.id) }}" class="result-card-link">
                 <div class="result-card {{ 'result-card--user' if is_user else '' }}">
                   <div class="team-home {{ 'team-user' if user_home else '' }}">{{ f.home_team }}</div>
                   <div class="result-card-centre">
@@ -160,107 +392,7 @@
         </div>
       {% endif %}
 
-      {# Line editor ──────────────────────────────────────────────────────── #}
-      <form action="{{ url_for('sim.play_simulate', gid=game.id) }}" method="post" class="sim-lines-form">
-
-        <h3 class="section-title mt-2">Set Your Lines</h3>
-        <p class="text-muted" style="font-size:0.85rem;margin-bottom:1rem;">Reorder your squad before the matchday simulates. Line 1 gets the most ice time.</p>
-
-        {# Forwards #}
-        {% set lws = players_by_pos.get('LW', []) %}
-        {% set cs  = players_by_pos.get('C',  []) %}
-        {% set rws = players_by_pos.get('RW', []) %}
-
-        <div class="sim-lines-block">
-          <div class="sim-lines-header">
-            <span></span><span>LW</span><span>C</span><span>RW</span>
-          </div>
-          {% for n in range(1, 5) %}
-          <div class="sim-line-row">
-            <span class="sim-line-label">Line {{ n }}</span>
-
-            <select name="line_{{ n }}_lw" class="sim-player-select">
-              {% for p in lws %}
-                <option value="{{ p.id }}" {{ 'selected' if p.line_number == n and p.slot == 'lw' else '' }}>
-                  {{ p.name }} ({{ "%.1f"|format(p.overall) }})
-                </option>
-              {% endfor %}
-            </select>
-
-            <select name="line_{{ n }}_c" class="sim-player-select">
-              {% for p in cs %}
-                <option value="{{ p.id }}" {{ 'selected' if p.line_number == n and p.slot == 'c' else '' }}>
-                  {{ p.name }} ({{ "%.1f"|format(p.overall) }})
-                </option>
-              {% endfor %}
-            </select>
-
-            <select name="line_{{ n }}_rw" class="sim-player-select">
-              {% for p in rws %}
-                <option value="{{ p.id }}" {{ 'selected' if p.line_number == n and p.slot == 'rw' else '' }}>
-                  {{ p.name }} ({{ "%.1f"|format(p.overall) }})
-                </option>
-              {% endfor %}
-            </select>
-          </div>
-          {% endfor %}
-        </div>
-
-        {# Defence #}
-        {% set lds = players_by_pos.get('LD', []) %}
-        {% set rds = players_by_pos.get('RD', []) %}
-
-        <div class="sim-lines-block sim-lines-pairs" style="margin-top:1rem;">
-          <div class="sim-lines-header">
-            <span></span><span>LD</span><span>RD</span>
-          </div>
-          {% for n in range(1, 4) %}
-          <div class="sim-line-row">
-            <span class="sim-line-label">Pair {{ n }}</span>
-
-            <select name="pair_{{ n }}_ld" class="sim-player-select">
-              {% for p in lds %}
-                <option value="{{ p.id }}" {{ 'selected' if p.line_number == n and p.slot == 'ld' else '' }}>
-                  {{ p.name }} ({{ "%.1f"|format(p.overall) }})
-                </option>
-              {% endfor %}
-            </select>
-
-            <select name="pair_{{ n }}_rd" class="sim-player-select">
-              {% for p in rds %}
-                <option value="{{ p.id }}" {{ 'selected' if p.line_number == n and p.slot == 'rd' else '' }}>
-                  {{ p.name }} ({{ "%.1f"|format(p.overall) }})
-                </option>
-              {% endfor %}
-            </select>
-          </div>
-          {% endfor %}
-        </div>
-
-        {# Goalie #}
-        {% set goalies = players_by_pos.get('G', []) %}
-        {% if goalies %}
-        <div class="sim-lines-block sim-lines-pairs" style="margin-top:1rem;">
-          <div class="sim-lines-header"><span></span><span>Starter</span></div>
-          <div class="sim-line-row">
-            <span class="sim-line-label">Goalie</span>
-            <select name="goalie_starter" class="sim-player-select">
-              {% for g in goalies %}
-                <option value="{{ g.id }}" {{ 'selected' if g.line_number == 1 else '' }}>
-                  {{ g.name }} ({{ "%.1f"|format(g.overall) }})
-                </option>
-              {% endfor %}
-            </select>
-          </div>
-        </div>
-        {% endif %}
-
-        <div style="margin-top:1.5rem;">
-          <button type="submit" class="btn btn-primary">
-            Simulate Matchday {{ game.current_matchday }}
-          </button>
-        </div>
-      </form>
+      {{ line_editor(url_for('sim.play_simulate', gid=game.id), 'Simulate Matchday ' ~ game.current_matchday) }}
 
     </div>
 
@@ -300,4 +432,56 @@
 
   </div>
 {% endif %}
+
+{# ── Line editor JS — enforces exclusive player assignment ───────────────── #}
+<script>
+(function () {
+  var form = document.getElementById('lines-form');
+  if (!form) return;
+
+  // Group position selects by data-pos attribute (excluding goalie which has no duplicates)
+  function getGroup(pos) {
+    return Array.from(form.querySelectorAll('select[data-pos="' + pos + '"]'));
+  }
+
+  var positions = ['lw', 'c', 'rw', 'ld', 'rd'];
+
+  positions.forEach(function (pos) {
+    var selects = getGroup(pos);
+    selects.forEach(function (sel) {
+      sel.addEventListener('change', function () {
+        var chosen = this.value;
+        if (!chosen || chosen === '0') return;
+        // Clear the same player from every other select in this position group
+        selects.forEach(function (other) {
+          if (other !== sel && other.value === chosen) {
+            other.value = '0';
+          }
+        });
+      });
+    });
+  });
+
+  // Validate on submit: no position-group select (lines 1-4 and pairs 1-3) may be vacant
+  form.addEventListener('submit', function (e) {
+    var vacant = [];
+    positions.forEach(function (pos) {
+      getGroup(pos).forEach(function (sel) {
+        if (!sel.value || sel.value === '0') {
+          vacant.push(sel.name);
+        }
+      });
+    });
+    if (vacant.length > 0) {
+      e.preventDefault();
+      var err = document.getElementById('lines-error');
+      var msg = document.getElementById('lines-error-msg');
+      msg.textContent = 'Please fill all vacant slots before simulating (' + vacant.length + ' empty).';
+      err.style.display = 'block';
+      err.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  });
+})();
+</script>
+
 {% endblock %}

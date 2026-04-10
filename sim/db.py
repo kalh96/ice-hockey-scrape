@@ -140,10 +140,17 @@ def init_schema(conn: sqlite3.Connection) -> None:
             total_matchdays  INTEGER NOT NULL,
             n_playoff_teams  INTEGER NOT NULL DEFAULT 4,
             status           TEXT NOT NULL DEFAULT 'active',
+            playoff_round    TEXT,
             created_at       TEXT NOT NULL
         );
     """)
     conn.commit()
+    # Migration: add playoff_round to existing DBs that pre-date this column
+    try:
+        conn.execute("ALTER TABLE sim_managed_seasons ADD COLUMN playoff_round TEXT")
+        conn.commit()
+    except Exception:
+        pass  # column already exists
 
 
 # ---------------------------------------------------------------------------
@@ -265,12 +272,15 @@ def advance_managed_season(
     game_id: int,
     new_matchday: int | None = None,
     status: str | None = None,
+    playoff_round: str | None = None,
 ) -> None:
     sets, vals = [], []
     if new_matchday is not None:
         sets.append("current_matchday=?"); vals.append(new_matchday)
     if status is not None:
         sets.append("status=?"); vals.append(status)
+    if playoff_round is not None:
+        sets.append("playoff_round=?"); vals.append(playoff_round)
     if sets:
         vals.append(game_id)
         conn.execute(f"UPDATE sim_managed_seasons SET {', '.join(sets)} WHERE id=?", vals)

@@ -16,9 +16,15 @@
 
 {% block content %}
 <div class="breadcrumb">
-  <a href="{{ url_for('sim.index') }}">Sim Game</a> &rsaquo;
-  <a href="{{ url_for('sim.season', lid=league.id) }}">{{ league.name }}</a> &rsaquo;
-  Match Report
+  {% if back_gid %}
+    <a href="{{ url_for('sim.play_index') }}">Play</a> &rsaquo;
+    <a href="{{ url_for('sim.play_game', gid=back_gid) }}">{{ back_game.team_name }}</a> &rsaquo;
+    Match Report
+  {% else %}
+    <a href="{{ url_for('sim.index') }}">Sim Game</a> &rsaquo;
+    <a href="{{ url_for('sim.season', lid=league.id) }}">{{ league.name }}</a> &rsaquo;
+    Match Report
+  {% endif %}
 </div>
 
 {# ── Score header ─────────────────────────────────────────────────────────── #}
@@ -89,6 +95,11 @@
 {% endif %}
 
 <div class="sim-match-footer">
-  <a href="{{ url_for('sim.season', lid=league.id) }}">&larr; Back to {{ league.name }}</a>
+  {% if back_gid %}
+    <a href="{{ url_for('sim.play_game', gid=back_gid) }}">&larr; Back to your game</a>
+    <a href="{{ url_for('sim.season', lid=league.id) }}" style="margin-left:1.5rem;">Full league view</a>
+  {% else %}
+    <a href="{{ url_for('sim.season', lid=league.id) }}">&larr; Back to {{ league.name }}</a>
+  {% endif %}
 </div>
 {% endblock %}

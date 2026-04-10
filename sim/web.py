@@ -156,11 +156,17 @@ def match(lid: int, fid: int):
             enriched["away_score"] = away_total
         current["events"].append(enriched)
 
+    # Optional: return-to-game context (passed as ?gid= query param from play_game)
+    back_gid = request.args.get("gid", type=int)
+    back_game = sq.get_managed_season(back_gid) if back_gid else None
+
     return render_template(
         "sim/match.html",
         fixture=fixture,
         periods=periods,
         league=league,
+        back_gid=back_gid,
+        back_game=back_game,
     )
 
 
@@ -234,13 +240,12 @@ def play_game(gid: int):
     lid  = game["league_id"]
     tid  = game["user_team_id"]
     md   = game["current_matchday"]
-    done = game["status"] == "finished"
 
     standings  = sq.get_standings(lid)
     league     = sq.get_league(lid)
     user_pos   = next((r["pos"] for r in standings if r["team_id"] == tid), "–")
 
-    if done:
+    if game["status"] == "finished":
         playoffs = _group_playoffs(sq.get_playoff_results(lid))
         champion = sq.get_league_champion(lid)
         return render_template(
@@ -251,14 +256,26 @@ def play_game(gid: int):
             phase="finished",
         )
 
-    # Results of the previous matchday (if any)
+    if game["status"] == "playoff":
+        playoff_round = game["playoff_round"] or "playoff_sf"
+        upcoming_playoff = sq.get_playoff_upcoming_fixtures(lid, playoff_round)
+        completed_playoffs = _group_playoffs(sq.get_playoff_results(lid))
+        players_by_pos = sq.get_user_team_players(tid)
+        return render_template(
+            "sim/play_game.html",
+            game=game, league=league,
+            standings=standings,
+            upcoming_playoff=upcoming_playoff,
+            completed_playoffs=completed_playoffs,
+            players_by_pos=players_by_pos,
+            user_pos=user_pos,
+            phase="playoff",
+            playoff_round=playoff_round,
+        )
+
+    # Regular season active
     prev_md      = md - 1
     prev_results = sq.get_matchday_fixtures(lid, prev_md) if prev_md >= 1 else []
-    prev_events  = {}
-    if prev_md >= 1:
-        for f in prev_results:
-            if f["played"]:
-                prev_events[f["id"]] = sq.get_fixture_events(f["id"])
 
     # Upcoming matchday fixtures
     upcoming = sq.get_matchday_fixtures(lid, md)
@@ -270,7 +287,7 @@ def play_game(gid: int):
         "sim/play_game.html",
         game=game, league=league,
         standings=standings,
-        prev_results=prev_results, prev_events=prev_events, prev_md=prev_md,
+        prev_results=prev_results, prev_md=prev_md,
         upcoming=upcoming,
         players_by_pos=players_by_pos,
         user_pos=user_pos,
@@ -281,37 +298,42 @@ def play_game(gid: int):
 @sim_bp.route("/play/<int:gid>/simulate/", methods=["POST"])
 def play_simulate(gid: int):
     game = sq.get_managed_season(gid)
-    if not game or game["status"] != "active":
+    if not game or game["status"] not in ("active", "playoff"):
         abort(404)
 
     lid = game["league_id"]
     tid = game["user_team_id"]
-    md  = game["current_matchday"]
 
     conn = get_conn()
     init_schema(conn)
 
-    # Apply line changes from form
+    # Apply line changes from form (works for both regular season and playoffs)
     assignments = {}
     for key, val in request.form.items():
         if (key.startswith("line_") or key.startswith("pair_") or key == "goalie_starter") and val:
             try:
-                assignments[key] = int(val)
+                pid = int(val)
+                if pid:
+                    assignments[key] = pid
             except ValueError:
                 pass
     if assignments:
         sm.update_player_lines(tid, assignments, conn)
 
-    # Simulate all games in this matchday
-    sm.simulate_matchday(lid, md, conn)
-
-    next_md = md + 1
-    if next_md > game["total_matchdays"]:
-        # Regular season over — run playoffs
-        sm.run_managed_playoffs(gid, lid, game["n_playoff_teams"], conn)
+    if game["status"] == "playoff":
+        # Simulate current playoff round
+        sm.simulate_playoff_round(gid, lid, game["playoff_round"], conn)
     else:
-        from sim.db import advance_managed_season
-        advance_managed_season(conn, gid, new_matchday=next_md)
+        # Regular season matchday
+        md = game["current_matchday"]
+        sm.simulate_matchday(lid, md, conn)
+        next_md = md + 1
+        if next_md > game["total_matchdays"]:
+            # Regular season over — init step-by-step playoffs
+            sm.init_managed_playoffs(gid, lid, game["n_playoff_teams"], conn)
+        else:
+            from sim.db import advance_managed_season
+            advance_managed_season(conn, gid, new_matchday=next_md)
 
     conn.close()
     return redirect(url_for("sim.play_game", gid=gid))
